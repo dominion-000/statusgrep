@@ -2,23 +2,30 @@
   <h1>Projects</h1>
 </div>
 <% if (typeof formError !== "undefined" && formError) { %><div class="flash flash-error"><%= formError %></div><% } %>
-<form method="post" action="/projects" class="card stack" style="margin-bottom:1.25rem">
-  <h2>New project</h2>
-  <label class="field">Name <input name="name" required /></label>
-  <label class="field">Slug <input name="slug" placeholder="optional" /></label>
-  <button class="btn" type="submit">Create</button>
-</form>
-<% if (!projects.length) { %>
-  <div class="empty">No projects yet.</div>
-<% } else { %>
-  <ul class="stack">
-    <% projects.forEach(function (p) { %>
-      <li class="card row">
-        <div>
-          <a href="/projects/<%= p.id %>"><strong><%= p.name %></strong></a>
-          <div class="muted"><%= p.slug %> · <%= p.role %></div>
-        </div>
-      </li>
-    <% }) %>
-  </ul>
-<% } %>
+<div class="panel-grid cols-2" style="margin-top:0.75rem">
+  <div class="card">
+    <h2>Your projects</h2>
+    <% if (!projects.length) { %>
+      <div class="empty">No projects yet — create one.</div>
+    <% } else { %>
+      <table class="data">
+        <thead><tr><th>Name</th><th>Slug</th><th>Role</th></tr></thead>
+        <tbody>
+          <% projects.forEach(function (p) { %>
+            <tr>
+              <td><a href="/projects/<%= p.id %>"><strong><%= p.name %></strong></a></td>
+              <td class="muted"><%= p.slug %></td>
+              <td class="muted"><%= p.role %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+  <form method="post" action="/projects" class="card stack">
+    <h2>New project</h2>
+    <label class="field">Name <input name="name" required autocomplete="off" /></label>
+    <label class="field">Slug <input name="slug" placeholder="optional" autocomplete="off" /></label>
+    <button class="btn" type="submit">Create</button>
+  </form>
+</div>

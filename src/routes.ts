@@ -15,6 +15,16 @@ function body(req: Request): Record<string, string> {
   return out;
 }
 
+function projectSide(projectId: string, active: string) {
+  return [
+    { href: `/projects/${projectId}`, label: "Overview", active: active === "overview" },
+    { href: `/projects/${projectId}/incidents`, label: "Incidents", active: active === "incidents" },
+    { href: `/projects/${projectId}/alerts`, label: "Alerts", active: active === "alerts" },
+    { href: `/projects/${projectId}/members`, label: "Members", active: active === "members" },
+    { href: `/projects/${projectId}/plan`, label: "Plan", active: active === "plan" },
+  ];
+}
+
 function nav(active: string, isAdmin: boolean) {
   const items = [
     { href: "/projects", label: "Projects", active: active === "projects" },
@@ -130,6 +140,7 @@ export function buildRoutes(config: UiConfig): Router {
       email: "",
       brandHref: "/",
       nav: [],
+      authPage: true,
     });
   });
 
@@ -153,6 +164,7 @@ export function buildRoutes(config: UiConfig): Router {
           email: body(req).email,
           brandHref: "/",
           nav: [],
+          authPage: true,
         });
         return;
       }
@@ -168,6 +180,7 @@ export function buildRoutes(config: UiConfig): Router {
       name: "",
       brandHref: "/",
       nav: [],
+      authPage: true,
     });
   });
 
@@ -196,6 +209,7 @@ export function buildRoutes(config: UiConfig): Router {
           name: body(req).name,
           brandHref: "/",
           nav: [],
+          authPage: true,
         });
         return;
       }
@@ -270,21 +284,10 @@ export function buildRoutes(config: UiConfig): Router {
           currentStatus?: string;
         }>;
       }>(`/api/v1/projects/${id}/services`);
-      // Enrich status when available
-      const services = [];
-      for (const s of servicesRes.services ?? []) {
-        let status = s.currentStatus ?? "Unknown";
-        try {
-          const st = await api(req).get<{
-            status?: string;
-            shownStatus?: string;
-          }>(`/api/v1/projects/${id}/services/${s.id}/status`);
-          status = (st as any).status?.shownStatus ?? (st as any).status?.status ?? (st as any).status ?? status;
-        } catch {
-          /* ignore */
-        }
-        services.push({ ...s, status });
-      }
+      const services = (servicesRes.services ?? []).map((s) => ({
+        ...s,
+        status: s.currentStatus ?? "Unknown",
+      }));
       await renderPage(res, "app/project", {
         title: project.name,
         user: { email: user.email },
@@ -293,6 +296,8 @@ export function buildRoutes(config: UiConfig): Router {
         error: flash(req),
         brandHref: "/projects",
         nav: nav("projects", Boolean(user.isAdmin)),
+        sideTitle: project.name,
+        sideNav: projectSide(id, "overview"),
       });
     } catch (err) {
       next(err);
@@ -533,6 +538,8 @@ export function buildRoutes(config: UiConfig): Router {
         incidents: data.incidents ?? [],
         brandHref: "/projects",
         nav: nav("projects", Boolean(user.isAdmin)),
+        sideTitle: "Project",
+        sideNav: projectSide(id, "incidents"),
       });
     } catch (err) {
       next(err);
@@ -611,6 +618,8 @@ export function buildRoutes(config: UiConfig): Router {
         error: flash(req),
         brandHref: "/projects",
         nav: nav("projects", Boolean(user.isAdmin)),
+        sideTitle: "Project",
+        sideNav: projectSide(id, "members"),
       });
     } catch (err) {
       next(err);
@@ -680,6 +689,8 @@ export function buildRoutes(config: UiConfig): Router {
         error: typeof req.query.error === "string" ? req.query.error : null,
         brandHref: "/projects",
         nav: nav("projects", Boolean(user.isAdmin)),
+        sideTitle: "Project",
+        sideNav: projectSide(id, "plan"),
       });
     } catch (err) {
       next(err);
@@ -723,6 +734,8 @@ export function buildRoutes(config: UiConfig): Router {
         alerts: data.alerts ?? [],
         brandHref: "/projects",
         nav: nav("projects", Boolean(user.isAdmin)),
+        sideTitle: "Project",
+        sideNav: projectSide(id, "alerts"),
       });
     } catch (err) {
       next(err);
