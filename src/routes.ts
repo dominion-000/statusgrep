@@ -670,7 +670,7 @@ export function buildRoutes(config: UiConfig): Router {
   });
 
   // —— Plan / alerts (existing) ——
-  r.get("/projects/:projectId/plan", async (req, res, next) => {
+  r.get("/projects/:projectId/plans", async (req, res, next) => {
     try {
       const user = await requireUser(req);
       if (!user) return res.redirect("/login");
