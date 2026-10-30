@@ -1,0 +1,38 @@
+<p class="muted"><a href="/projects/<%= projectId %>">← Project</a></p>
+<h1>Members</h1>
+<% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
+<table class="data card">
+  <thead><tr><th>Email</th><th>Name</th><th>Role</th><th></th></tr></thead>
+  <tbody>
+    <% members.forEach(function (m) { %>
+      <tr>
+        <td><%= m.email %></td>
+        <td class="muted"><%= m.name || "—" %></td>
+        <td><%= m.role %></td>
+        <td>
+          <form method="post" action="/projects/<%= projectId %>/members/<%= m.userId %>/role" style="display:inline">
+            <select name="role">
+              <% ["Owner","Responder","Viewer"].forEach(function (role) { %>
+                <option value="<%= role %>" <%= m.role === role ? "selected" : "" %>><%= role %></option>
+              <% }) %>
+            </select>
+            <button class="btn secondary" type="submit">Set</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+<form method="post" action="/projects/<%= projectId %>/members" class="card stack" style="margin-top:1rem">
+  <h2>Invite</h2>
+  <p class="muted">User must already have an account.</p>
+  <label class="field">Email <input type="email" name="email" required /></label>
+  <label class="field">Role
+    <select name="role">
+      <option>Viewer</option>
+      <option>Responder</option>
+      <option>Owner</option>
+    </select>
+  </label>
+  <button class="btn" type="submit">Invite</button>
+</form>

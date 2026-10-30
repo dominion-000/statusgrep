@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= typeof title !== "undefined" ? title + " · " : "" %>StatusGrep</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="<%= typeof brandHref !== "undefined" ? brandHref : "/" %>">StatusGrep</a>
+      <% if (typeof nav !== "undefined" && nav && nav.length) { %>
+        <nav>
+          <% nav.forEach(function (item) { %>
+            <a href="<%= item.href %>" class="<%= item.active ? "active" : "" %>"><%= item.label %></a>
+          <% }) %>
+        </nav>
+      <% } %>
+      <% if (typeof user !== "undefined" && user) { %>
+        <span class="muted user"><%= user.email %></span>
+      <% } %>
+    </header>
+    <main class="main">
+      <%- body %>
+    </main>
+  </body>
+</html>

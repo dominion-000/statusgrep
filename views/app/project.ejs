@@ -1,0 +1,39 @@
+<p class="muted"><a href="/projects">← Projects</a></p>
+<div class="row">
+  <h1><%= project.name %></h1>
+  <div class="row" style="gap:0.5rem">
+    <a class="btn secondary" href="/projects/<%= project.id %>/incidents">Incidents</a>
+    <a class="btn secondary" href="/projects/<%= project.id %>/alerts">Alerts</a>
+    <a class="btn secondary" href="/projects/<%= project.id %>/members">Members</a>
+    <a class="btn secondary" href="/projects/<%= project.id %>/plan">Plan</a>
+    <a class="btn secondary" href="/status/<%= project.slug %>" target="_blank">Public</a>
+  </div>
+</div>
+<% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
+<section class="card" style="margin-top:1rem">
+  <h2>Services</h2>
+  <% if (!services.length) { %><p class="muted">None yet.</p><% } else { %>
+    <table class="data">
+      <thead><tr><th>Name</th><th>Status</th><th>URL</th><th>Interval</th><th></th></tr></thead>
+      <tbody>
+        <% services.forEach(function (s) { %>
+          <tr>
+            <td><a href="/projects/<%= project.id %>/services/<%= s.id %>"><%= s.name %></a></td>
+            <td><span class="status-pill" data-status="<%= s.status || 'Unknown' %>"><%= s.status || 'Unknown' %></span></td>
+            <td class="muted"><%= s.url %></td>
+            <td class="muted"><%= s.intervalSeconds %>s · <%= s.enabled === false ? "disabled" : "on" %></td>
+            <td><a href="/projects/<%= project.id %>/services/<%= s.id %>/edit">Edit</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+<form method="post" action="/projects/<%= project.id %>/services" class="card stack" style="margin-top:1rem">
+  <h2>Add service</h2>
+  <label class="field">Name <input name="name" required /></label>
+  <label class="field">URL <input name="url" type="url" required placeholder="https://" /></label>
+  <label class="field">Interval (s) <input name="intervalSeconds" type="number" value="60" min="15" /></label>
+  <label class="field">Timeout (s) <input name="timeoutSeconds" type="number" value="10" min="1" /></label>
+  <button class="btn" type="submit">Create service</button>
+</form>

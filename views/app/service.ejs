@@ -1,0 +1,90 @@
+<p class="muted"><a href="/projects/<%= projectId %>">← Project</a></p>
+<div class="row">
+  <h1><%= service.name %></h1>
+  <div class="row" style="gap:0.5rem">
+    <a class="btn secondary" href="/projects/<%= projectId %>/services/<%= service.id %>/edit">Edit</a>
+    <% if (service.enabled) { %>
+      <form method="post" action="/projects/<%= projectId %>/services/<%= service.id %>/disable" style="display:inline">
+        <button class="btn secondary" type="submit">Disable</button>
+      </form>
+    <% } else { %>
+      <form method="post" action="/projects/<%= projectId %>/services/<%= service.id %>/enable" style="display:inline">
+        <button class="btn" type="submit">Enable</button>
+      </form>
+    <% } %>
+  </div>
+</div>
+<% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
+<div class="card" style="margin-top:1rem">
+  <p>
+    Status:
+    <% const shown = (status && status.status && (status.status.shownStatus || status.status.status)) || status.shownStatus || status.status || service.currentStatus || "Unknown"; %>
+    <span class="status-pill" data-status="<%= shown %>"><%= shown %></span>
+    · <%= service.enabled ? "enabled" : "disabled" %>
+  </p>
+  <p class="muted"><%= service.method || "GET" %> <%= service.url %> · every <%= service.intervalSeconds %>s</p>
+</div>
+
+<section class="card stack" style="margin-top:1rem">
+  <h2>Override</h2>
+  <% const ov = status && status.status && status.status.override ? status.status.override : status.override; %>
+  <% if (ov) { %>
+    <p>Active: <strong><%= ov.status %></strong> — <%= ov.reason %></p>
+    <p class="muted">Expires <%= ov.expiresAt ? new Date(ov.expiresAt).toLocaleString() : "—" %></p>
+    <form method="post" action="/projects/<%= projectId %>/services/<%= service.id %>/override/cancel">
+      <button class="btn secondary" type="submit">Cancel override</button>
+    </form>
+  <% } else { %>
+    <form method="post" action="/projects/<%= projectId %>/services/<%= service.id %>/override" class="stack">
+      <label class="field">Status
+        <select name="status">
+          <option>Operational</option>
+          <option>Degraded</option>
+          <option>Outage</option>
+        </select>
+      </label>
+      <label class="field">Reason <input name="reason" required minlength="3" /></label>
+      <label class="field">Expires (ISO)
+        <input name="expiresAt" required placeholder="2026-12-01T12:00:00.000Z" />
+      </label>
+      <button class="btn" type="submit">Set override</button>
+    </form>
+  <% } %>
+</section>
+
+<section class="card" style="margin-top:1rem">
+  <h2>Recent results</h2>
+  <% if (!results || !results.length) { %><p class="muted">None</p><% } else { %>
+    <table class="data">
+      <thead><tr><th>When</th><th>OK</th><th>Status</th><th>ms</th></tr></thead>
+      <tbody>
+        <% results.forEach(function (r) { %>
+          <tr>
+            <td class="muted"><%= r.checkedAt ? new Date(r.checkedAt).toLocaleString() : (r.createdAt ? new Date(r.createdAt).toLocaleString() : "—") %></td>
+            <td><%= r.ok === true || r.success === true ? "yes" : "no" %></td>
+            <td><%= r.httpStatus || r.statusCode || "—" %></td>
+            <td><%= r.latencyMs != null ? r.latencyMs : (r.durationMs != null ? r.durationMs : "—") %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<section class="card" style="margin-top:1rem">
+  <h2>Status history</h2>
+  <% if (!history || !history.length) { %><p class="muted">None</p><% } else { %>
+    <table class="data">
+      <thead><tr><th>When</th><th>Status</th><th>Source</th></tr></thead>
+      <tbody>
+        <% history.forEach(function (h) { %>
+          <tr>
+            <td class="muted"><%= h.startedAt ? new Date(h.startedAt).toLocaleString() : "—" %></td>
+            <td><span class="status-pill" data-status="<%= h.status %>"><%= h.status %></span></td>
+            <td class="muted"><%= h.source || "—" %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>

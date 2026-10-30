@@ -1,0 +1,16 @@
+<p class="muted"><a href="/projects/<%= projectId %>">← Project</a></p>
+<h1>Incidents</h1>
+<% if (!incidents.length) { %><div class="empty">No incidents.</div><% } else { %>
+  <table class="data card">
+    <thead><tr><th>Title</th><th>Status</th><th>Opened</th></tr></thead>
+    <tbody>
+      <% incidents.forEach(function (i) { %>
+        <tr>
+          <td><a href="/projects/<%= projectId %>/incidents/<%= i.id %>"><%= i.title %></a></td>
+          <td><%= i.status %></td>
+          <td class="muted"><%= i.createdAt ? new Date(i.createdAt).toLocaleString() : "—" %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>

@@ -1,0 +1,4 @@
+<p class="muted"><a href="/admin">← Administration</a></p>
+<h1><%= title %></h1>
+<% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
+<%- tableHtml %>

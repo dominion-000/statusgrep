@@ -1,0 +1,29 @@
+<div class="card" style="margin-bottom:1rem">
+  <h1 style="margin:0"><%= project.name %></h1>
+  <p style="margin:0.5rem 0 0">
+    Overall:
+    <span class="status-pill" data-status="<%= overall %>"><%= overall %></span>
+  </p>
+</div>
+<% if (!services.length) { %><div class="empty">No public services.</div><% } else { %>
+  <% services.forEach(function (s) { %>
+    <div class="card" style="margin-bottom:0.75rem">
+      <div class="row">
+        <strong><%= s.name %></strong>
+        <span class="status-pill" data-status="<%= s.status %>"><%= s.status %></span>
+      </div>
+      <% if (s.activeIncident) { %>
+        <p class="muted" style="margin:0.5rem 0 0">Incident: <%= s.activeIncident.title %> (<%= s.activeIncident.status %>)</p>
+      <% } %>
+      <% if (s.recentHistory && s.recentHistory.length) { %>
+        <p class="muted" style="margin:0.35rem 0 0;font-size:0.8rem">
+          Recent:
+          <% s.recentHistory.slice(0,5).forEach(function (h) { %>
+            <%= h.status %><% if (h !== s.recentHistory[Math.min(4, s.recentHistory.length-1)]) { %> · <% } %>
+          <% }) %>
+        </p>
+      <% } %>
+    </div>
+  <% }) %>
+<% } %>
+<p><a href="/status/<%= project.slug %>/subscribe">Subscribe to updates</a></p>
