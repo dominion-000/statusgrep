@@ -269,11 +269,14 @@ export function buildRoutes(config: UiConfig): Router {
       const user = await requireUser(req);
       if (!user) return res.redirect("/login");
       const id = req.params.projectId!;
-      const project = await api(req).get<{
-        id: string;
-        name: string;
-        slug: string;
+            const projectRes = await api(req).get<{
+        project: {
+          id: string;
+          name: string;
+          slug: string;
+        };
       }>(`/api/v1/projects/${id}`);
+      const project = projectRes.project;
       const servicesRes = await api(req).get<{
         services: Array<{
           id: string;
