@@ -1,18 +1,25 @@
 <p class="muted"><a href="/projects/<%= projectId %>">← Project</a></p>
-<h1>Alerts</h1>
-<% if (!alerts.length) { %><div class="empty">No alerts.</div><% } else { %>
+<div class="row">
+  <h1>Alerts</h1>
+</div>
+<% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
+<% if (!alerts || !alerts.length) { %>
+  <div class="empty">No alerts yet. They appear when a service enters Outage.</div>
+<% } else { %>
   <table class="data card">
-    <thead><tr><th>Service</th><th>Status</th><th>When</th><th></th></tr></thead>
+    <thead><tr><th>Service</th><th>State</th><th>When</th><th>Action</th></tr></thead>
     <tbody>
       <% alerts.forEach(function (a) { %>
         <tr>
           <td><%= a.serviceName || a.serviceId %></td>
-          <td><%= a.status || a.kind || "—" %></td>
+          <td><span class="status-pill" data-status="<%= a.state === 'Outage' ? 'Outage' : 'Degraded' %>"><%= a.state || "—" %></span></td>
           <td class="muted"><%= a.createdAt ? new Date(a.createdAt).toLocaleString() : "—" %></td>
           <td>
-            <% if (!a.acknowledgement) { %>
+            <% if (a.acknowledgement) { %>
+              <span class="muted">Acknowledged</span>
+            <% } else { %>
               <form method="post" action="/projects/<%= projectId %>/alerts/<%= a.id %>/acknowledge" style="display:inline">
-                <button class="btn secondary" type="submit">Acknowledge</button>
+                <button class="btn" type="submit">Acknowledge</button>
               </form>
             <% } %>
           </td>
