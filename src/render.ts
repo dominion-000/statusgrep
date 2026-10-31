@@ -3,7 +3,11 @@ import { fileURLToPath } from "node:url";
 import ejs from "ejs";
 import type { Response } from "express";
 
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "views");
+const root = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "views",
+);
 
 export async function renderPage(
   res: Response,

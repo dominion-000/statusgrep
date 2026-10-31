@@ -4,11 +4,14 @@
   "private": true,
   "description": "StatusGrep — browser UI for the Status Pulse API",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "dev": "tsc -p tsconfig.json && node dist/main.js"
+    "dev": "tsc -p tsconfig.json && node dist/main.js",
+    "vercel-build": "pnpm build"
   },
   "dependencies": {
     "dotenv": "^16.6.1",

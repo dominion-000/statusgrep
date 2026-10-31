@@ -4,12 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title><%= typeof title !== "undefined" ? title + " · " : "" %>StatusGrep</title>
+    <link rel="icon" href="/assets/mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
   <body>
     <div class="app-shell">
       <header class="app-header">
-        <a class="brand" href="<%= typeof brandHref !== "undefined" ? brandHref : "/" %>">Status<span>Grep</span></a>
+        <a class="brand" href="<%= typeof brandHref !== "undefined" ? brandHref : "/" %>">
+          <img src="/assets/mark.svg" alt="" />
+          Status<span>Grep</span>
+        </a>
         <% if (typeof nav !== "undefined" && nav && nav.length) { %>
           <nav>
             <% nav.forEach(function (item) { %>
