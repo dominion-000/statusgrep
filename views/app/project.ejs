@@ -3,7 +3,12 @@
     <h1 style="margin-bottom:0.15rem"><%= project.name %></h1>
     <p class="muted" style="margin:0"><%= project.slug %></p>
   </div>
-  <a class="btn secondary" href="/status/<%= project.slug %>" target="_blank" rel="noopener">Public status ↗</a>
+  <div class="row" style="gap:0.5rem">
+    <a class="btn secondary" href="/status/<%= project.slug %>" target="_blank" rel="noopener">Public status ↗</a>
+    <form method="post" action="/projects/<%= project.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this project and all its services?');">
+      <button class="btn danger" type="submit">Delete project</button>
+    </form>
+  </div>
 </div>
 <% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
 
