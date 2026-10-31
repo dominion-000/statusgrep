@@ -4,7 +4,6 @@ import express, { type Express } from "express";
 import { loadConfig } from "./config.js";
 import { buildRoutes } from "./routes.js";
 
-/** Project root (parent of dist/ or src/). */
 export function projectRoot(): string {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 }
@@ -26,3 +25,6 @@ export function createUiApp(): Express {
 
   return app;
 }
+
+/** Default export: Express app instance (required by Vercel serverless). */
+export default createUiApp();
