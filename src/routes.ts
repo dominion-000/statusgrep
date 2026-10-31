@@ -161,15 +161,20 @@ export function buildRoutes(config: UiConfig): Router {
     return user;
   }
 
-  r.get("/", async (req, res) => {
-    const token = readToken(req, config);
-    await renderPage(res, "public/welcome", {
-      title: "StatusGrep",
-      brandHref: "/",
-      nav: [],
-      welcome: true,
-      loggedIn: Boolean(token),
-    });
+  r.get("/", async (req, res, next) => {
+    try {
+      const token = readToken(req, config);
+      await renderPage(res, "public/welcome", {
+        title: "StatusGrep",
+        brandHref: "/",
+        nav: [],
+        welcome: true,
+        loggedIn: Boolean(token),
+        authPage: true,
+      });
+    } catch (err) {
+      next(err);
+    }
   });
 
   r.get("/login", async (_req, res) => {
