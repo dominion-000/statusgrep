@@ -2,9 +2,14 @@
   "version": 2,
   "installCommand": "pnpm install",
   "buildCommand": "pnpm build",
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ],
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "includeFiles": "{views/**,public/**,dist/**}"
     }
   }
