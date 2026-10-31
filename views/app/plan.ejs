@@ -7,7 +7,7 @@
   <p class="muted">Services <%= usage.services %> / <%= limits.services %> · Members <%= usage.members %> / <%= limits.members %></p>
 </div>
 <% if (planName === "free") { %>
-  <form method="post" action="/projects/<%= projectId %>/plan" class="card stack" style="margin-top:1rem">
+  <form method="post" action="/projects/<%= projectId %>/plans" class="card stack" style="margin-top:1rem">
     <input type="hidden" name="planName" value="pro" />
     <button class="btn" type="submit">Upgrade to pro</button>
   </form>

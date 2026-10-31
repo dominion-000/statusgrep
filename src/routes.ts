@@ -1,4 +1,9 @@
-import { Router, type Request, type Response, type NextFunction } from "express";
+import {
+  Router,
+  type Request,
+  type Response,
+  type NextFunction,
+} from "express";
 import { randomBytes } from "node:crypto";
 import type { UiConfig } from "./config.js";
 import { ApiError, createApiClient } from "./api.js";
@@ -17,11 +22,31 @@ function body(req: Request): Record<string, string> {
 
 function projectSide(projectId: string, active: string) {
   return [
-    { href: `/projects/${projectId}`, label: "Overview", active: active === "overview" },
-    { href: `/projects/${projectId}/incidents`, label: "Incidents", active: active === "incidents" },
-    { href: `/projects/${projectId}/alerts`, label: "Alerts", active: active === "alerts" },
-    { href: `/projects/${projectId}/members`, label: "Members", active: active === "members" },
-    { href: `/projects/${projectId}/plan`, label: "Plan", active: active === "plan" },
+    {
+      href: `/projects/${projectId}`,
+      label: "Overview",
+      active: active === "overview",
+    },
+    {
+      href: `/projects/${projectId}/incidents`,
+      label: "Incidents",
+      active: active === "incidents",
+    },
+    {
+      href: `/projects/${projectId}/alerts`,
+      label: "Alerts",
+      active: active === "alerts",
+    },
+    {
+      href: `/projects/${projectId}/members`,
+      label: "Members",
+      active: active === "members",
+    },
+    {
+      href: `/projects/${projectId}/plan`,
+      label: "Plan",
+      active: active === "plan",
+    },
   ];
 }
 
@@ -36,7 +61,12 @@ function nav(active: string, isAdmin: boolean) {
   return items;
 }
 
-type AuthUser = { id: string; email: string; name: string | null; isAdmin?: boolean };
+type AuthUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  isAdmin?: boolean;
+};
 
 function escapeHtml(s: string): string {
   return s
@@ -115,7 +145,10 @@ export function buildRoutes(config: UiConfig): Router {
     return { id: "", email, name: null, isAdmin: readAdminFlag(req, config) };
   }
 
-  async function requireAdmin(req: Request, res: Response): Promise<AuthUser | null> {
+  async function requireAdmin(
+    req: Request,
+    res: Response,
+  ): Promise<AuthUser | null> {
     const user = await requireUser(req);
     if (!user) {
       res.redirect("/login");
@@ -230,7 +263,12 @@ export function buildRoutes(config: UiConfig): Router {
       const user = await requireUser(req);
       if (!user) return res.redirect("/login");
       const data = await api(req).get<{
-        projects: Array<{ id: string; name: string; slug: string; role: string }>;
+        projects: Array<{
+          id: string;
+          name: string;
+          slug: string;
+          role: string;
+        }>;
       }>("/api/v1/projects");
       await renderPage(res, "app/projects", {
         title: "Projects",
@@ -269,7 +307,7 @@ export function buildRoutes(config: UiConfig): Router {
       const user = await requireUser(req);
       if (!user) return res.redirect("/login");
       const id = req.params.projectId!;
-            const projectRes = await api(req).get<{
+      const projectRes = await api(req).get<{
         project: {
           id: string;
           name: string;
@@ -307,6 +345,23 @@ export function buildRoutes(config: UiConfig): Router {
     }
   });
 
+  r.post("/projects/:projectId/delete", async (req, res, next) => {
+    try {
+      if (!(await requireUser(req))) return res.redirect("/login");
+      const id = req.params.projectId!;
+      await api(req).del(`/api/v1/projects/${id}`);
+      res.redirect("/projects");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        res.redirect(
+          `/projects/${req.params.projectId}?error=${encodeURIComponent(err.message)}`,
+        );
+        return;
+      }
+      next(err);
+    }
+  });
+
   r.post("/projects/:projectId/services", async (req, res, next) => {
     try {
       const user = await requireUser(req);
@@ -337,9 +392,9 @@ export function buildRoutes(config: UiConfig): Router {
       const user = await requireUser(req);
       if (!user) return res.redirect("/login");
       const { projectId, serviceId } = req.params;
-      const { service } = await api(req).get<{ service: Record<string, unknown> }>(
-        `/api/v1/projects/${projectId}/services/${serviceId}`,
-      );
+      const { service } = await api(req).get<{
+        service: Record<string, unknown>;
+      }>(`/api/v1/projects/${projectId}/services/${serviceId}`);
       let status: Record<string, unknown> = {};
       try {
         status = await api(req).get(
@@ -383,167 +438,187 @@ export function buildRoutes(config: UiConfig): Router {
     }
   });
 
-  r.get("/projects/:projectId/services/:serviceId/edit", async (req, res, next) => {
-    try {
-      const user = await requireUser(req);
-      if (!user) return res.redirect("/login");
-      const { projectId, serviceId } = req.params;
-      const { service } = await api(req).get<{ service: Record<string, unknown> }>(
-        `/api/v1/projects/${projectId}/services/${serviceId}`,
-      );
-      await renderPage(res, "app/service-edit", {
-        title: "Edit service",
-        user: { email: user.email },
-        projectId,
-        service,
-        error: flash(req),
-        brandHref: "/projects",
-        nav: nav("projects", Boolean(user.isAdmin)),
-      });
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  r.post("/projects/:projectId/services/:serviceId/edit", async (req, res, next) => {
-    try {
-      const user = await requireUser(req);
-      if (!user) return res.redirect("/login");
-      const { projectId, serviceId } = req.params;
-      const b = body(req);
-      const patch: Record<string, unknown> = {
-        name: b.name,
-        url: b.url,
-        method: b.method || "GET",
-        intervalSeconds: Number(b.intervalSeconds),
-        timeoutSeconds: Number(b.timeoutSeconds),
-        isPublic: b.isPublic === "true" || b.isPublic === "on",
-      };
-      if (b.expectedStatusCodes) {
-        patch.expectedStatusCodes = b.expectedStatusCodes
-          .split(",")
-          .map((x) => Number(x.trim()))
-          .filter((n) => Number.isFinite(n));
+  r.get(
+    "/projects/:projectId/services/:serviceId/edit",
+    async (req, res, next) => {
+      try {
+        const user = await requireUser(req);
+        if (!user) return res.redirect("/login");
+        const { projectId, serviceId } = req.params;
+        const { service } = await api(req).get<{
+          service: Record<string, unknown>;
+        }>(`/api/v1/projects/${projectId}/services/${serviceId}`);
+        await renderPage(res, "app/service-edit", {
+          title: "Edit service",
+          user: { email: user.email },
+          projectId,
+          service,
+          error: flash(req),
+          brandHref: "/projects",
+          nav: nav("projects", Boolean(user.isAdmin)),
+        });
+      } catch (err) {
+        next(err);
       }
-      await api(req).patch(
-        `/api/v1/projects/${projectId}/services/${serviceId}`,
-        patch,
-      );
-      res.redirect(`/projects/${projectId}/services/${serviceId}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        res.redirect(
-          `/projects/${req.params.projectId}/services/${req.params.serviceId}/edit?error=${encodeURIComponent(err.message)}`,
+    },
+  );
+
+  r.post(
+    "/projects/:projectId/services/:serviceId/edit",
+    async (req, res, next) => {
+      try {
+        const user = await requireUser(req);
+        if (!user) return res.redirect("/login");
+        const { projectId, serviceId } = req.params;
+        const b = body(req);
+        const patch: Record<string, unknown> = {
+          name: b.name,
+          url: b.url,
+          method: b.method || "GET",
+          intervalSeconds: Number(b.intervalSeconds),
+          timeoutSeconds: Number(b.timeoutSeconds),
+          isPublic: b.isPublic === "true" || b.isPublic === "on",
+        };
+        if (b.expectedStatusCodes) {
+          patch.expectedStatusCodes = b.expectedStatusCodes
+            .split(",")
+            .map((x) => Number(x.trim()))
+            .filter((n) => Number.isFinite(n));
+        }
+        await api(req).patch(
+          `/api/v1/projects/${projectId}/services/${serviceId}`,
+          patch,
         );
-        return;
+        res.redirect(`/projects/${projectId}/services/${serviceId}`);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          res.redirect(
+            `/projects/${req.params.projectId}/services/${req.params.serviceId}/edit?error=${encodeURIComponent(err.message)}`,
+          );
+          return;
+        }
+        next(err);
       }
-      next(err);
-    }
-  });
+    },
+  );
 
-  r.post("/projects/:projectId/services/:serviceId/enable", async (req, res, next) => {
-    try {
-      if (!(await requireUser(req))) return res.redirect("/login");
-      const { projectId, serviceId } = req.params;
-      await api(req).post(
-        `/api/v1/projects/${projectId}/services/${serviceId}/enable`,
-        {},
-      );
-      res.redirect(`/projects/${projectId}/services/${serviceId}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        res.redirect(
-          `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+  r.post(
+    "/projects/:projectId/services/:serviceId/enable",
+    async (req, res, next) => {
+      try {
+        if (!(await requireUser(req))) return res.redirect("/login");
+        const { projectId, serviceId } = req.params;
+        await api(req).post(
+          `/api/v1/projects/${projectId}/services/${serviceId}/enable`,
+          {},
         );
-        return;
+        res.redirect(`/projects/${projectId}/services/${serviceId}`);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          res.redirect(
+            `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+          );
+          return;
+        }
+        next(err);
       }
-      next(err);
-    }
-  });
+    },
+  );
 
-
-  r.post("/projects/:projectId/services/:serviceId/delete", async (req, res, next) => {
-    try {
-      if (!(await requireUser(req))) return res.redirect("/login");
-      const { projectId, serviceId } = req.params;
-      await api(req).del(
-        `/api/v1/projects/${projectId}/services/${serviceId}`,
-      );
-      res.redirect(`/projects/${projectId}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        res.redirect(
-          `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+  r.post(
+    "/projects/:projectId/services/:serviceId/delete",
+    async (req, res, next) => {
+      try {
+        if (!(await requireUser(req))) return res.redirect("/login");
+        const { projectId, serviceId } = req.params;
+        await api(req).del(
+          `/api/v1/projects/${projectId}/services/${serviceId}`,
         );
-        return;
+        res.redirect(`/projects/${projectId}`);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          res.redirect(
+            `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+          );
+          return;
+        }
+        next(err);
       }
-      next(err);
-    }
-  });
+    },
+  );
 
-  r.post("/projects/:projectId/services/:serviceId/disable", async (req, res, next) => {
-    try {
-      if (!(await requireUser(req))) return res.redirect("/login");
-      const { projectId, serviceId } = req.params;
-      await api(req).post(
-        `/api/v1/projects/${projectId}/services/${serviceId}/disable`,
-        {},
-      );
-      res.redirect(`/projects/${projectId}/services/${serviceId}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        res.redirect(
-          `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+  r.post(
+    "/projects/:projectId/services/:serviceId/disable",
+    async (req, res, next) => {
+      try {
+        if (!(await requireUser(req))) return res.redirect("/login");
+        const { projectId, serviceId } = req.params;
+        await api(req).post(
+          `/api/v1/projects/${projectId}/services/${serviceId}/disable`,
+          {},
         );
-        return;
+        res.redirect(`/projects/${projectId}/services/${serviceId}`);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          res.redirect(
+            `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+          );
+          return;
+        }
+        next(err);
       }
-      next(err);
-    }
-  });
+    },
+  );
 
-  r.post("/projects/:projectId/services/:serviceId/override", async (req, res, next) => {
-    try {
-      if (!(await requireUser(req))) return res.redirect("/login");
-      const { projectId, serviceId } = req.params;
-      const b = body(req);
-      await api(req).post(
-        `/api/v1/projects/${projectId}/services/${serviceId}/override`,
-        {
-          status: b.status,
-          reason: b.reason,
-          expiresAt: b.expiresAt,
-        },
-      );
-      res.redirect(`/projects/${projectId}/services/${serviceId}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        res.redirect(
-          `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+  r.post(
+    "/projects/:projectId/services/:serviceId/override",
+    async (req, res, next) => {
+      try {
+        if (!(await requireUser(req))) return res.redirect("/login");
+        const { projectId, serviceId } = req.params;
+        const b = body(req);
+        await api(req).post(
+          `/api/v1/projects/${projectId}/services/${serviceId}/override`,
+          {
+            status: b.status,
+            reason: b.reason,
+            expiresAt: b.expiresAt,
+          },
         );
-        return;
+        res.redirect(`/projects/${projectId}/services/${serviceId}`);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          res.redirect(
+            `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+          );
+          return;
+        }
+        next(err);
       }
-      next(err);
-    }
-  });
+    },
+  );
 
-  r.post("/projects/:projectId/services/:serviceId/override/cancel", async (req, res, next) => {
-    try {
-      if (!(await requireUser(req))) return res.redirect("/login");
-      const { projectId, serviceId } = req.params;
-      await createApiClient(config, readToken(req, config)).del(
-        `/api/v1/projects/${projectId}/services/${serviceId}/override`,
-      );
-      res.redirect(`/projects/${projectId}/services/${serviceId}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        res.redirect(
-          `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+  r.post(
+    "/projects/:projectId/services/:serviceId/override/cancel",
+    async (req, res, next) => {
+      try {
+        if (!(await requireUser(req))) return res.redirect("/login");
+        const { projectId, serviceId } = req.params;
+        await createApiClient(config, readToken(req, config)).del(
+          `/api/v1/projects/${projectId}/services/${serviceId}/override`,
         );
-        return;
+        res.redirect(`/projects/${projectId}/services/${serviceId}`);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          res.redirect(
+            `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+          );
+          return;
+        }
+        next(err);
       }
-      next(err);
-    }
-  });
+    },
+  );
 
   // —— Incidents ——
   r.get("/projects/:projectId/incidents", async (req, res, next) => {
@@ -569,55 +644,64 @@ export function buildRoutes(config: UiConfig): Router {
     }
   });
 
-  r.get("/projects/:projectId/incidents/:incidentId", async (req, res, next) => {
-    try {
-      const user = await requireUser(req);
-      if (!user) return res.redirect("/login");
-      const { projectId, incidentId } = req.params;
-      const data = await api(req).get<{
-        incident: Record<string, unknown>;
-        updates?: unknown[];
-      }>(`/api/v1/projects/${projectId}/incidents/${incidentId}`);
-      await renderPage(res, "app/incident", {
-        title: String(data.incident?.title ?? "Incident"),
-        user: { email: user.email },
-        projectId,
-        incident: data.incident,
-        updates: data.updates ?? (data.incident as { updates?: unknown[] })?.updates ?? [],
-        error: flash(req),
-        brandHref: "/projects",
-        nav: nav("projects", Boolean(user.isAdmin)),
-      });
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  r.post("/projects/:projectId/incidents/:incidentId/updates", async (req, res, next) => {
-    try {
-      if (!(await requireUser(req))) return res.redirect("/login");
-      const { projectId, incidentId } = req.params;
-      const b = body(req);
-      const payload: Record<string, unknown> = {
-        message: b.message,
-        isPublic: b.isPublic === "true" || b.isPublic === "on",
-      };
-      if (b.status) payload.status = b.status;
-      await api(req).post(
-        `/api/v1/projects/${projectId}/incidents/${incidentId}/updates`,
-        payload,
-      );
-      res.redirect(`/projects/${projectId}/incidents/${incidentId}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        res.redirect(
-          `/projects/${req.params.projectId}/incidents/${req.params.incidentId}?error=${encodeURIComponent(err.message)}`,
-        );
-        return;
+  r.get(
+    "/projects/:projectId/incidents/:incidentId",
+    async (req, res, next) => {
+      try {
+        const user = await requireUser(req);
+        if (!user) return res.redirect("/login");
+        const { projectId, incidentId } = req.params;
+        const data = await api(req).get<{
+          incident: Record<string, unknown>;
+          updates?: unknown[];
+        }>(`/api/v1/projects/${projectId}/incidents/${incidentId}`);
+        await renderPage(res, "app/incident", {
+          title: String(data.incident?.title ?? "Incident"),
+          user: { email: user.email },
+          projectId,
+          incident: data.incident,
+          updates:
+            data.updates ??
+            (data.incident as { updates?: unknown[] })?.updates ??
+            [],
+          error: flash(req),
+          brandHref: "/projects",
+          nav: nav("projects", Boolean(user.isAdmin)),
+        });
+      } catch (err) {
+        next(err);
       }
-      next(err);
-    }
-  });
+    },
+  );
+
+  r.post(
+    "/projects/:projectId/incidents/:incidentId/updates",
+    async (req, res, next) => {
+      try {
+        if (!(await requireUser(req))) return res.redirect("/login");
+        const { projectId, incidentId } = req.params;
+        const b = body(req);
+        const payload: Record<string, unknown> = {
+          message: b.message,
+          isPublic: b.isPublic === "true" || b.isPublic === "on",
+        };
+        if (b.status) payload.status = b.status;
+        await api(req).post(
+          `/api/v1/projects/${projectId}/incidents/${incidentId}/updates`,
+          payload,
+        );
+        res.redirect(`/projects/${projectId}/incidents/${incidentId}`);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          res.redirect(
+            `/projects/${req.params.projectId}/incidents/${req.params.incidentId}?error=${encodeURIComponent(err.message)}`,
+          );
+          return;
+        }
+        next(err);
+      }
+    },
+  );
 
   // —— Members ——
   r.get("/projects/:projectId/members", async (req, res, next) => {
@@ -670,24 +754,30 @@ export function buildRoutes(config: UiConfig): Router {
     }
   });
 
-  r.post("/projects/:projectId/members/:userId/role", async (req, res, next) => {
-    try {
-      if (!(await requireUser(req))) return res.redirect("/login");
-      const { projectId, userId } = req.params;
-      await api(req).patch(`/api/v1/projects/${projectId}/members/${userId}`, {
-        role: body(req).role,
-      });
-      res.redirect(`/projects/${projectId}/members`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        res.redirect(
-          `/projects/${req.params.projectId}/members?error=${encodeURIComponent(err.message)}`,
+  r.post(
+    "/projects/:projectId/members/:userId/role",
+    async (req, res, next) => {
+      try {
+        if (!(await requireUser(req))) return res.redirect("/login");
+        const { projectId, userId } = req.params;
+        await api(req).patch(
+          `/api/v1/projects/${projectId}/members/${userId}`,
+          {
+            role: body(req).role,
+          },
         );
-        return;
+        res.redirect(`/projects/${projectId}/members`);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          res.redirect(
+            `/projects/${req.params.projectId}/members?error=${encodeURIComponent(err.message)}`,
+          );
+          return;
+        }
+        next(err);
       }
-      next(err);
-    }
-  });
+    },
+  );
 
   // —— Plan / alerts (existing) ——
   r.get("/projects/:projectId/plans", async (req, res, next) => {
@@ -766,12 +856,9 @@ export function buildRoutes(config: UiConfig): Router {
   });
 
   // Acknowledge is POST-only; GET is a mistaken refresh/bookmark.
-  r.get(
-    "/projects/:projectId/alerts/:alertId/acknowledge",
-    (req, res) => {
-      res.redirect(`/projects/${req.params.projectId}/alerts`);
-    },
-  );
+  r.get("/projects/:projectId/alerts/:alertId/acknowledge", (req, res) => {
+    res.redirect(`/projects/${req.params.projectId}/alerts`);
+  });
 
   r.post(
     "/projects/:projectId/alerts/:alertId/acknowledge",
@@ -814,14 +901,13 @@ export function buildRoutes(config: UiConfig): Router {
         ...s,
         status: s.currentStatus ?? s.status ?? "Unknown",
       }));
-      const overall =
-        services.some((s) => s.status === "Outage")
-          ? "Outage"
-          : services.some((s) => s.status === "Degraded")
-            ? "Degraded"
-            : services.length
-              ? "Operational"
-              : "Unknown";
+      const overall = services.some((s) => s.status === "Outage")
+        ? "Outage"
+        : services.some((s) => s.status === "Degraded")
+          ? "Degraded"
+          : services.length
+            ? "Operational"
+            : "Unknown";
       await renderPage(res, "public/status", {
         title: data.project.name,
         project: data.project,
@@ -849,9 +935,12 @@ export function buildRoutes(config: UiConfig): Router {
   r.post("/status/:slug/subscribe", async (req, res, next) => {
     try {
       const slug = req.params.slug!;
-      await createApiClient(config, null).post(`/api/v1/public/${slug}/subscribe`, {
-        email: body(req).email,
-      });
+      await createApiClient(config, null).post(
+        `/api/v1/public/${slug}/subscribe`,
+        {
+          email: body(req).email,
+        },
+      );
       await renderPage(res, "public/subscribe", {
         title: "Subscribe",
         slug,
@@ -1091,7 +1180,10 @@ export function buildRoutes(config: UiConfig): Router {
   r.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     console.error(err);
     const msg = err instanceof Error ? err.message : "Error";
-    res.status(500).type("html").send(`<!doctype html><p>${escapeHtml(msg)}</p>`);
+    res
+      .status(500)
+      .type("html")
+      .send(`<!doctype html><p>${escapeHtml(msg)}</p>`);
   });
 
   return r;
