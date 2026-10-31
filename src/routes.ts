@@ -461,6 +461,26 @@ export function buildRoutes(config: UiConfig): Router {
     }
   });
 
+
+  r.post("/projects/:projectId/services/:serviceId/delete", async (req, res, next) => {
+    try {
+      if (!(await requireUser(req))) return res.redirect("/login");
+      const { projectId, serviceId } = req.params;
+      await api(req).del(
+        `/api/v1/projects/${projectId}/services/${serviceId}`,
+      );
+      res.redirect(`/projects/${projectId}`);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        res.redirect(
+          `/projects/${req.params.projectId}/services/${req.params.serviceId}?error=${encodeURIComponent(err.message)}`,
+        );
+        return;
+      }
+      next(err);
+    }
+  });
+
   r.post("/projects/:projectId/services/:serviceId/disable", async (req, res, next) => {
     try {
       if (!(await requireUser(req))) return res.redirect("/login");
@@ -745,6 +765,14 @@ export function buildRoutes(config: UiConfig): Router {
     }
   });
 
+  // Acknowledge is POST-only; GET is a mistaken refresh/bookmark.
+  r.get(
+    "/projects/:projectId/alerts/:alertId/acknowledge",
+    (req, res) => {
+      res.redirect(`/projects/${req.params.projectId}/alerts`);
+    },
+  );
+
   r.post(
     "/projects/:projectId/alerts/:alertId/acknowledge",
     async (req, res, next) => {
@@ -757,6 +785,12 @@ export function buildRoutes(config: UiConfig): Router {
         );
         res.redirect(`/projects/${projectId}/alerts`);
       } catch (err) {
+        if (err instanceof ApiError) {
+          res.redirect(
+            `/projects/${req.params.projectId}/alerts?error=${encodeURIComponent(err.message)}`,
+          );
+          return;
+        }
         next(err);
       }
     },

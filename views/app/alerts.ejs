@@ -10,7 +10,7 @@
           <td><%= a.status || a.kind || "—" %></td>
           <td class="muted"><%= a.createdAt ? new Date(a.createdAt).toLocaleString() : "—" %></td>
           <td>
-            <% if (!a.acknowledgedAt) { %>
+            <% if (!a.acknowledgement) { %>
               <form method="post" action="/projects/<%= projectId %>/alerts/<%= a.id %>/acknowledge" style="display:inline">
                 <button class="btn secondary" type="submit">Acknowledge</button>
               </form>

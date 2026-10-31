@@ -12,14 +12,22 @@
         <button class="btn" type="submit">Enable</button>
       </form>
     <% } %>
+    <form method="post" action="/projects/<%= projectId %>/services/<%= service.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this service?');">
+      <button class="btn danger" type="submit">Delete</button>
+    </form>
   </div>
 </div>
 <% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
 <div class="card" style="margin-top:1rem">
   <p>
     Status:
-    <% const shown = (status && status.status && (status.status.shownStatus || status.status.status)) || status.shownStatus || status.status || service.currentStatus || "Unknown"; %>
+    <%
+      const snap = (status && status.status) ? status.status : status;
+      const shown = (snap && (snap.current || snap.shownStatus)) || service.currentStatus || "Unknown";
+      const computed = snap && snap.computed ? snap.computed : null;
+    %>
     <span class="status-pill" data-status="<%= shown %>"><%= shown %></span>
+    <% if (computed && computed !== shown) { %><span class="muted">(computed <%= computed %>)</span><% } %>
     · <%= service.enabled ? "enabled" : "disabled" %>
   </p>
   <p class="muted"><%= service.method || "GET" %> <%= service.url %> · every <%= service.intervalSeconds %>s</p>
@@ -27,7 +35,7 @@
 
 <section class="card stack" style="margin-top:1rem">
   <h2>Override</h2>
-  <% const ov = status && status.status && status.status.override ? status.status.override : status.override; %>
+  <% const snap2 = (status && status.status) ? status.status : status; const ov = snap2 && snap2.override ? snap2.override : null; %>
   <% if (ov) { %>
     <p>Active: <strong><%= ov.status %></strong> — <%= ov.reason %></p>
     <p class="muted">Expires <%= ov.expiresAt ? new Date(ov.expiresAt).toLocaleString() : "—" %></p>
@@ -61,8 +69,8 @@
         <% results.forEach(function (r) { %>
           <tr>
             <td class="muted"><%= r.checkedAt ? new Date(r.checkedAt).toLocaleString() : (r.createdAt ? new Date(r.createdAt).toLocaleString() : "—") %></td>
-            <td><%= r.ok === true || r.success === true ? "yes" : "no" %></td>
-            <td><%= r.httpStatus || r.statusCode || "—" %></td>
+            <td><%= r.passed === true ? "yes" : (r.passed === false ? "no" : "—") %></td>
+            <td><%= r.statusCode != null ? r.statusCode : "—" %></td>
             <td><%= r.latencyMs != null ? r.latencyMs : (r.durationMs != null ? r.durationMs : "—") %></td>
           </tr>
         <% }) %>
