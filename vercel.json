@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "pnpm build",
   "installCommand": "pnpm install",
+  "buildCommand": "pnpm build",
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
   "functions": {
     "api/index.ts": {
-      "includeFiles": "views/**,public/**,dist/**"
+      "includeFiles": "{views/**,public/**,dist/**}"
     }
   }
 }

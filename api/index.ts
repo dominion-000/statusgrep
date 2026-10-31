@@ -1,4 +1,4 @@
-import { createUiApp } from "../src/app.js";
+import { createUiApp } from "../dist/app.js";
 
 const app = createUiApp();
 export default app;
