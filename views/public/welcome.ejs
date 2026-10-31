@@ -5,12 +5,12 @@
   <h1 class="hero-title">Status<span>Grep</span></h1>
   <p class="hero-lead">Monitor HTTP endpoints. Track incidents. Publish status.</p>
   <div class="hero-actions">
-    <a class="btn" href="/login">Log in</a>
-    <a class="btn secondary" href="/register">Create account</a>
+    <% if (typeof loggedIn !== "undefined" && loggedIn) { %>
+      <a class="btn" href="/projects">Go to dashboard</a>
+      <a class="btn secondary" href="/logout">Sign out</a>
+    <% } else { %>
+      <a class="btn" href="/login">Log in</a>
+      <a class="btn secondary" href="/register">Sign up</a>
+    <% } %>
   </div>
-  <ul class="hero-points">
-    <li>Scheduled checks &amp; live status</li>
-    <li>Incidents, alerts, public pages</li>
-    <li>Plans, members, operator admin</li>
-  </ul>
 </section>

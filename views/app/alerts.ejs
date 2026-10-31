@@ -13,7 +13,7 @@
         <tr>
           <td><%= a.serviceName || a.serviceId %></td>
           <td><span class="status-pill" data-status="<%= a.state === 'Outage' ? 'Outage' : 'Degraded' %>"><%= a.state || "—" %></span></td>
-          <td class="muted"><%= a.createdAt ? new Date(a.createdAt).toLocaleString() : "—" %></td>
+          <td class="muted"><%= a.createdAt ? new Date(a.createdAt).toLocaleString("en-GB", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }) : "—" %></td>
           <td>
             <% if (a.acknowledgement) { %>
               <span class="muted">Acknowledged</span>

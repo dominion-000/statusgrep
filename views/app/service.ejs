@@ -38,7 +38,7 @@
   <% const snap2 = (status && status.status) ? status.status : status; const ov = snap2 && snap2.override ? snap2.override : null; %>
   <% if (ov) { %>
     <p>Active: <strong><%= ov.status %></strong> — <%= ov.reason %></p>
-    <p class="muted">Expires <%= ov.expiresAt ? new Date(ov.expiresAt).toLocaleString() : "—" %></p>
+    <p class="muted">Expires <%= ov.expiresAt ? new Date(ov.expiresAt).toLocaleString("en-GB", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }) : "—" %></p>
     <form method="post" action="/projects/<%= projectId %>/services/<%= service.id %>/override/cancel">
       <button class="btn secondary" type="submit">Cancel override</button>
     </form>
@@ -68,7 +68,7 @@
       <tbody>
         <% results.forEach(function (r) { %>
           <tr>
-            <td class="muted"><%= r.checkedAt ? new Date(r.checkedAt).toLocaleString() : (r.createdAt ? new Date(r.createdAt).toLocaleString() : "—") %></td>
+            <td class="muted"><%= r.checkedAt ? new Date(r.checkedAt).toLocaleString("en-GB", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }) : (r.createdAt ? new Date(r.createdAt).toLocaleString("en-GB", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }) : "—") %></td>
             <td><%= r.passed === true ? "yes" : (r.passed === false ? "no" : "—") %></td>
             <td><%= r.statusCode != null ? r.statusCode : "—" %></td>
             <td><%= r.latencyMs != null ? r.latencyMs : (r.durationMs != null ? r.durationMs : "—") %></td>
@@ -87,7 +87,7 @@
       <tbody>
         <% history.forEach(function (h) { %>
           <tr>
-            <td class="muted"><%= h.startedAt ? new Date(h.startedAt).toLocaleString() : "—" %></td>
+            <td class="muted"><%= h.startedAt ? new Date(h.startedAt).toLocaleString("en-GB", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }) : "—" %></td>
             <td><span class="status-pill" data-status="<%= h.status %>"><%= h.status %></span></td>
             <td class="muted"><%= h.source || "—" %></td>
           </tr>

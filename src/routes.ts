@@ -162,12 +162,13 @@ export function buildRoutes(config: UiConfig): Router {
   }
 
   r.get("/", async (req, res) => {
-    if (readToken(req, config)) return res.redirect("/projects");
+    const token = readToken(req, config);
     await renderPage(res, "public/welcome", {
       title: "StatusGrep",
       brandHref: "/",
       nav: [],
       welcome: true,
+      loggedIn: Boolean(token),
     });
   });
 
@@ -785,6 +786,30 @@ export function buildRoutes(config: UiConfig): Router {
   );
 
   // —— Plan (project-scoped: UI /plans, API GET /plans, POST /plan) ——
+
+  r.get("/projects/:projectId/plan/callback", async (req, res, next) => {
+    try {
+      if (!(await requireUser(req))) return res.redirect("/login");
+      const id = req.params.projectId!;
+      const reference =
+        typeof req.query.reference === "string" ? req.query.reference : "";
+      if (!reference) {
+        res.redirect(`/projects/${id}/plans?error=${encodeURIComponent("Missing payment reference")}`);
+        return;
+      }
+      await api(req).post(`/api/v1/projects/${id}/plan/complete`, { reference });
+      res.redirect(`/projects/${id}/plans?ok=1`);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        res.redirect(
+          `/projects/${req.params.projectId}/plans?error=${encodeURIComponent(err.message)}`,
+        );
+        return;
+      }
+      next(err);
+    }
+  });
+
   r.get("/projects/:projectId/plan", (req, res) => {
     res.redirect(302, `/projects/${req.params.projectId}/plans`);
   });
@@ -825,11 +850,23 @@ export function buildRoutes(config: UiConfig): Router {
       if (!(await requireUser(req))) return res.redirect("/login");
       const id = req.params.projectId!;
       const key = randomBytes(8).toString("hex");
-      await api(req).post(
+      const result = await api(req).post<{
+        status?: string;
+        authorizationUrl?: string;
+        reference?: string;
+        plan?: { name: string };
+      }>(
         `/api/v1/projects/${id}/plan`,
-        { planName: body(req).planName || "pro" },
+        {
+          planName: body(req).planName || "pro",
+          callbackUrl: `${req.protocol}://${req.get("host")}/projects/${id}/plan/callback`,
+        },
         { "Idempotency-Key": key },
       );
+      if (result?.authorizationUrl) {
+        res.redirect(result.authorizationUrl);
+        return;
+      }
       res.redirect(`/projects/${id}/plans?ok=1`);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -848,11 +885,23 @@ export function buildRoutes(config: UiConfig): Router {
       if (!(await requireUser(req))) return res.redirect("/login");
       const id = req.params.projectId!;
       const key = randomBytes(8).toString("hex");
-      await api(req).post(
+      const result = await api(req).post<{
+        status?: string;
+        authorizationUrl?: string;
+        reference?: string;
+        plan?: { name: string };
+      }>(
         `/api/v1/projects/${id}/plan`,
-        { planName: body(req).planName || "pro" },
+        {
+          planName: body(req).planName || "pro",
+          callbackUrl: `${req.protocol}://${req.get("host")}/projects/${id}/plan/callback`,
+        },
         { "Idempotency-Key": key },
       );
+      if (result?.authorizationUrl) {
+        res.redirect(result.authorizationUrl);
+        return;
+      }
       res.redirect(`/projects/${id}/plans?ok=1`);
     } catch (err) {
       if (err instanceof ApiError) {
