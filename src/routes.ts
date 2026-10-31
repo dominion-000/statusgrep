@@ -43,7 +43,7 @@ function projectSide(projectId: string, active: string) {
       active: active === "members",
     },
     {
-      href: `/projects/${projectId}/plan`,
+      href: `/projects/${projectId}/plans`,
       label: "Plan",
       active: active === "plan",
     },
@@ -161,9 +161,14 @@ export function buildRoutes(config: UiConfig): Router {
     return user;
   }
 
-  r.get("/", (req, res) => {
+  r.get("/", async (req, res) => {
     if (readToken(req, config)) return res.redirect("/projects");
-    return res.redirect("/login");
+    await renderPage(res, "public/welcome", {
+      title: "StatusGrep",
+      brandHref: "/",
+      nav: [],
+      welcome: true,
+    });
   });
 
   r.get("/login", async (_req, res) => {
@@ -779,25 +784,30 @@ export function buildRoutes(config: UiConfig): Router {
     },
   );
 
-  // —— Plan / alerts (existing) ——
+  // —— Plan (project-scoped: UI /plans, API GET /plans, POST /plan) ——
+  r.get("/projects/:projectId/plan", (req, res) => {
+    res.redirect(302, `/projects/${req.params.projectId}/plans`);
+  });
+
   r.get("/projects/:projectId/plans", async (req, res, next) => {
     try {
       const user = await requireUser(req);
       if (!user) return res.redirect("/login");
       const id = req.params.projectId!;
       const data = await api(req).get<{
-        plan?: { name: string };
-        planName?: string;
-        usage?: { services: number; members: number };
-        limits?: { services: number; members: number };
-      }>(`/api/v1/projects/${id}/plan`);
+        current: { name: string; maxServices: number; maxMembers: number };
+        plans: Array<{ name: string; maxServices: number; maxMembers: number }>;
+      }>(`/api/v1/projects/${id}/plans`);
       await renderPage(res, "app/plan", {
         title: "Plan",
         user: { email: user.email },
         projectId: id,
-        planName: data.plan?.name ?? data.planName ?? "free",
-        usage: data.usage ?? { services: 0, members: 0 },
-        limits: data.limits ?? { services: 3, members: 3 },
+        planName: data.current?.name ?? "free",
+        usage: { services: 0, members: 0 },
+        limits: {
+          services: data.current?.maxServices ?? 3,
+          members: data.current?.maxMembers ?? 3,
+        },
         message: req.query.ok ? "Plan updated." : null,
         error: typeof req.query.error === "string" ? req.query.error : null,
         brandHref: "/projects",
@@ -810,7 +820,7 @@ export function buildRoutes(config: UiConfig): Router {
     }
   });
 
-  r.post("/projects/:projectId/plan", async (req, res, next) => {
+  r.post("/projects/:projectId/plans", async (req, res, next) => {
     try {
       if (!(await requireUser(req))) return res.redirect("/login");
       const id = req.params.projectId!;
@@ -820,11 +830,34 @@ export function buildRoutes(config: UiConfig): Router {
         { planName: body(req).planName || "pro" },
         { "Idempotency-Key": key },
       );
-      res.redirect(`/projects/${id}/plan?ok=1`);
+      res.redirect(`/projects/${id}/plans?ok=1`);
     } catch (err) {
       if (err instanceof ApiError) {
         res.redirect(
-          `/projects/${req.params.projectId}/plan?error=${encodeURIComponent(err.message)}`,
+          `/projects/${req.params.projectId}/plans?error=${encodeURIComponent(err.message)}`,
+        );
+        return;
+      }
+      next(err);
+    }
+  });
+
+  r.post("/projects/:projectId/plan", async (req, res, next) => {
+    // alias for older forms
+    try {
+      if (!(await requireUser(req))) return res.redirect("/login");
+      const id = req.params.projectId!;
+      const key = randomBytes(8).toString("hex");
+      await api(req).post(
+        `/api/v1/projects/${id}/plan`,
+        { planName: body(req).planName || "pro" },
+        { "Idempotency-Key": key },
+      );
+      res.redirect(`/projects/${id}/plans?ok=1`);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        res.redirect(
+          `/projects/${req.params.projectId}/plans?error=${encodeURIComponent(err.message)}`,
         );
         return;
       }
