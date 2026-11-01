@@ -19,20 +19,23 @@
     </ul>
   <% } %>
 </section>
-<% if (!incident.resolvedAt) { %>
+<% if (!incident.resolvedAt && incident.status !== "Resolved") {
+  const order = ["Investigating", "Identified", "Monitoring", "Resolved"];
+  const idx = order.indexOf(incident.status);
+  const nextStatus = idx >= 0 && idx < order.length - 1 ? order[idx + 1] : null;
+%>
 <form method="post" action="/projects/<%= projectId %>/incidents/<%= incident.id %>/updates" class="card stack" style="margin-top:1rem">
   <h2>Post update</h2>
   <label class="field">Message <textarea name="message" rows="3"></textarea></label>
   <label class="field">Status (optional)
     <select name="status">
-      <option value="">— note only —</option>
-      <option>Investigating</option>
-      <option>Identified</option>
-      <option>Monitoring</option>
-      <option>Resolved</option>
+      <option value="">— note only (stay <%= incident.status %>) —</option>
+      <% if (nextStatus) { %>
+        <option value="<%= nextStatus %>"><%= nextStatus %> (next)</option>
+      <% } %>
     </select>
   </label>
-  <label class="field"><input type="checkbox" name="isPublic" value="true" /> Public</label>
+  <label class="field"><input type="checkbox" name="isPublic" value="true" /> Public update</label>
   <button class="btn" type="submit">Post</button>
 </form>
 <% } %>
