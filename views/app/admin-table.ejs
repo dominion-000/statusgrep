@@ -1,4 +1,11 @@
 <p class="muted"><a href="/admin">← Administration</a></p>
-<h1><%= title %></h1>
+<div class="row">
+  <h1 style="margin:0"><%= title %></h1>
+</div>
 <% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
-<%- tableHtml %>
+<div class="card" style="margin-top:1rem;overflow-x:auto">
+  <%- tableHtml %>
+</div>
+<p class="muted" style="margin-top:0.75rem;font-size:12px">
+  Platform data across all projects. Probe or test accounts from API smoke tests may appear here.
+</p>
