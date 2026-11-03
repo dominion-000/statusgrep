@@ -53,6 +53,7 @@ function projectSide(projectId: string, active: string) {
 function nav(active: string, isAdmin: boolean) {
   const items = [
     { href: "/projects", label: "Projects", active: active === "projects" },
+    { href: "/account", label: "Account", active: active === "account" },
   ];
   if (isAdmin) {
     items.push({ href: "/admin", label: "Admin", active: active === "admin" });
@@ -160,6 +161,59 @@ export function buildRoutes(config: UiConfig): Router {
     }
     return user;
   }
+
+
+  r.get("/account", async (req, res, next) => {
+    try {
+      const user = await requireUser(req);
+      if (!user) return res.redirect("/login");
+      const me = await api(req).get<{
+        user: { id: string; email: string; name: string | null; isAdmin: boolean };
+      }>("/api/v1/auth/me");
+      await renderPage(res, "app/account", {
+        title: "Account",
+        user: { email: me.user.email, name: me.user.name },
+        account: me.user,
+        message: typeof req.query.ok === "string" ? "Saved." : null,
+        error: typeof req.query.error === "string" ? req.query.error : null,
+        brandHref: "/projects",
+        nav: nav("account", Boolean(user.isAdmin)),
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  r.post("/account", async (req, res, next) => {
+    try {
+      if (!(await requireUser(req))) return res.redirect("/login");
+      const b = body(req);
+      const payload: Record<string, string> = {};
+      if (b.name !== undefined && b.name !== "") payload.name = b.name;
+      if (b.name === "") payload.name = ""; // clear not supported as null via form - send space skip
+      if (b.email) payload.email = b.email;
+      if (b.newPassword) {
+        payload.currentPassword = b.currentPassword || "";
+        payload.newPassword = b.newPassword;
+      }
+      // Fix empty name: API expects null to clear - use omit if unchanged
+      const patch: Record<string, unknown> = {};
+      if (b.name !== undefined) patch.name = b.name.trim() || null;
+      if (b.email) patch.email = b.email.trim();
+      if (b.newPassword) {
+        patch.currentPassword = b.currentPassword;
+        patch.newPassword = b.newPassword;
+      }
+      await api(req).patch("/api/v1/auth/me", patch);
+      res.redirect("/account?ok=1");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        res.redirect(`/account?error=${encodeURIComponent(err.message)}`);
+        return;
+      }
+      next(err);
+    }
+  });
 
   r.get("/", async (req, res, next) => {
     try {
