@@ -9,4 +9,12 @@ export default defineConfig({
   vite: {
     envPrefix: ["API_", "PUBLIC_"],
   },
+  security: {
+    allowedDomains: [
+      {
+        hostname: "statusgrep.vercel.app",
+        protocol: "https",
+      },
+    ],
+  },
 });
