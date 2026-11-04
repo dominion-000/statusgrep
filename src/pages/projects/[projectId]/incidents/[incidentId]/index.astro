@@ -1,0 +1,79 @@
+---
+import AppLayout from "../../../../../layouts/AppLayout.astro";
+import Flash from "../../../../../components/Flash.astro";
+import { api } from "../../../../../lib/api";
+import { getToken } from "../../../../../lib/auth";
+import { lagos } from "../../../../../lib/format";
+import { projectSide } from "../../../../../lib/nav";
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+const { projectId, incidentId } = Astro.params;
+let error: string | null = Astro.url.searchParams.get("error");
+let email = "", isAdmin = false;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  email = me.user.email; isAdmin = me.user.isAdmin;
+} catch { return Astro.redirect("/login"); }
+
+if (Astro.request.method === "POST") {
+  try {
+    const f = await Astro.request.formData();
+    const body: Record<string, unknown> = { message: String(f.get("message") || "") };
+    const st = String(f.get("status") || "");
+    if (st) body.status = st;
+    if (f.get("isPublic") === "on" || f.get("isPublic") === "true") body.isPublic = true;
+    await api(`/api/v1/projects/${projectId}/incidents/${incidentId}/updates`, {
+      method: "POST",
+      token,
+      body,
+    });
+    return Astro.redirect(`/projects/${projectId}/incidents/${incidentId}`);
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Failed";
+  }
+}
+
+const data = await api<{
+  incident: { id: string; title: string; status: string; resolvedAt?: string; updates?: Array<{ status?: string; message: string; createdAt: string }> };
+}>(`/api/v1/projects/${projectId}/incidents/${incidentId}`, { token });
+const incident = data.incident;
+const updates = incident.updates ?? data.incident && (data as any).updates || [];
+const order = ["Investigating", "Identified", "Monitoring", "Resolved"];
+const idx = order.indexOf(incident.status);
+const nextStatus = idx >= 0 && idx < order.length - 1 ? order[idx + 1] : null;
+---
+<AppLayout title={incident.title} email={email} isAdmin={isAdmin} sideNav={projectSide(projectId!, "incidents")}>
+  <p class="text-muted text-xs mb-2"><a href={`/projects/${projectId}/incidents`}>← Incidents</a></p>
+  <h1 class="text-xl font-semibold m-0">{incident.title}</h1>
+  <p class="text-muted text-sm mb-4">{incident.status}{incident.resolvedAt ? ` · Resolved ${lagos(incident.resolvedAt)}` : ""}</p>
+  <Flash error={error} />
+  <section class="sg-card mb-6">
+    <h2 class="text-sm text-muted mb-3">Timeline</h2>
+    <ul class="space-y-3 list-none p-0 m-0">
+      {(updates as any[]).map((u) => (
+        <li>
+          <strong>{u.status || "Note"}</strong>
+          <span class="text-muted text-xs ml-2">{lagos(u.createdAt)}</span>
+          <div class="text-sm mt-0.5">{u.message}</div>
+        </li>
+      ))}
+      {!(updates as any[]).length && <li class="text-muted">No updates yet</li>}
+    </ul>
+  </section>
+  {incident.status !== "Resolved" && !incident.resolvedAt && (
+    <form method="post" class="sg-card flex flex-col gap-3 max-w-lg">
+      <h2 class="text-sm text-muted m-0">Post update</h2>
+      <textarea class="sg-input" name="message" rows="3" placeholder="Message"></textarea>
+      <label class="sg-label">Status
+        <select class="sg-input" name="status">
+          <option value="">— note only —</option>
+          {nextStatus && <option value={nextStatus}>{nextStatus} (next)</option>}
+        </select>
+      </label>
+      <label class="flex items-center gap-2 text-sm text-muted">
+        <input type="checkbox" name="isPublic" value="true" /> Public update
+      </label>
+      <button class="sg-btn self-start" type="submit">Post</button>
+    </form>
+  )}
+</AppLayout>

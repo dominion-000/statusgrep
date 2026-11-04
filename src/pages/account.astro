@@ -1,0 +1,52 @@
+---
+import AppLayout from "../layouts/AppLayout.astro";
+import Flash from "../components/Flash.astro";
+import { api } from "../lib/api";
+import { getToken } from "../lib/auth";
+
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+
+let error: string | null = Astro.url.searchParams.get("error");
+let ok: string | null = Astro.url.searchParams.get("ok") ? "Saved." : null;
+let account = { email: "", name: null as string | null, isAdmin: false };
+
+try {
+  const me = await api<{ user: typeof account }>("/api/v1/auth/me", { token });
+  account = me.user;
+} catch {
+  return Astro.redirect("/login");
+}
+
+if (Astro.request.method === "POST") {
+  try {
+    const f = await Astro.request.formData();
+    const patch: Record<string, unknown> = {
+      name: String(f.get("name") || "").trim() || null,
+      email: String(f.get("email") || "").trim(),
+    };
+    const np = String(f.get("newPassword") || "");
+    if (np) {
+      patch.currentPassword = String(f.get("currentPassword") || "");
+      patch.newPassword = np;
+    }
+    await api("/api/v1/auth/me", { method: "PATCH", token, body: patch });
+    return Astro.redirect("/account?ok=1");
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Save failed";
+  }
+}
+---
+<AppLayout title="Account · StatusGrep" email={account.email} isAdmin={account.isAdmin} active="account">
+  <h1 class="text-xl font-semibold mb-4">Account</h1>
+  <Flash error={error} ok={ok} />
+  <form method="post" class="sg-card max-w-md flex flex-col gap-3">
+    <label class="sg-label">Name<input class="sg-input" name="name" value={account.name ?? ""} /></label>
+    <label class="sg-label">Email<input class="sg-input" type="email" name="email" value={account.email} required /></label>
+    <hr class="border-white/10" />
+    <p class="text-muted text-xs m-0">Change password (optional)</p>
+    <label class="sg-label">Current password<input class="sg-input" type="password" name="currentPassword" autocomplete="current-password" /></label>
+    <label class="sg-label">New password<input class="sg-input" type="password" name="newPassword" minlength="12" autocomplete="new-password" /></label>
+    <button class="sg-btn self-start" type="submit">Save</button>
+  </form>
+</AppLayout>

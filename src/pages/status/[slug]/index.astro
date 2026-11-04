@@ -1,0 +1,51 @@
+---
+import Base from "../../../layouts/Base.astro";
+import "../../../styles/global.css";
+import StatusPill from "../../../components/StatusPill.astro";
+import { api } from "../../../lib/api";
+import { lagos } from "../../../lib/format";
+const slug = Astro.params.slug!;
+let error: string | null = null;
+let data: any = null;
+try {
+  data = await api(`/api/v1/public/${slug}`);
+} catch (e) {
+  error = e instanceof Error ? e.message : "Not found";
+}
+const services = data?.services ?? data?.project?.services ?? [];
+const incidents = data?.incidents ?? [];
+const name = data?.project?.name || data?.name || slug;
+---
+<Base title={`${name} status`}>
+  <main class="max-w-2xl mx-auto px-4 py-12 animate-fadeUp">
+    <p class="text-muted text-xs mb-1">Public status</p>
+    <h1 class="text-2xl font-bold mb-6">{name}</h1>
+    {error && <p class="text-bad">{error}</p>}
+    {!error && (
+      <>
+        <section class="sg-card mb-6">
+          <h2 class="text-sm text-muted mb-3">Services</h2>
+          <ul class="space-y-2 list-none p-0 m-0">
+            {services.map((s: any) => (
+              <li class="flex justify-between gap-2">
+                <span>{s.name}</span>
+                <StatusPill status={s.status || s.current} />
+              </li>
+            ))}
+            {!services.length && <li class="text-muted">No public services</li>}
+          </ul>
+        </section>
+        <section class="sg-card mb-6">
+          <h2 class="text-sm text-muted mb-3">Incidents</h2>
+          {incidents.length ? incidents.map((i: any) => (
+            <div class="mb-2 text-sm">
+              <strong>{i.title}</strong>
+              <span class="text-muted text-xs ml-2">{i.status} · {lagos(i.createdAt)}</span>
+            </div>
+          )) : <p class="text-muted text-sm m-0">No public incidents</p>}
+        </section>
+        <a class="sg-btn-ghost text-xs" href={`/status/${slug}/subscribe`}>Subscribe to updates</a>
+      </>
+    )}
+  </main>
+</Base>

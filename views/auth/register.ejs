@@ -1,9 +1,0 @@
-<h1>Create account</h1>
-<% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
-<form method="post" action="/register" class="card stack">
-  <label class="field">Email <input type="email" name="email" required value="<%= email || "" %>" /></label>
-  <label class="field">Name <input type="text" name="name" value="<%= name || "" %>" /></label>
-  <label class="field">Password <input type="password" name="password" required minlength="8" /></label>
-  <button class="btn" type="submit">Register</button>
-</form>
-<p class="muted" style="margin-top:1rem"><a href="/login">Log in</a></p>

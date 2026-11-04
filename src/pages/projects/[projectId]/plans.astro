@@ -1,0 +1,72 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import Flash from "../../../components/Flash.astro";
+import { api } from "../../../lib/api";
+import { getToken } from "../../../lib/auth";
+import { projectSide } from "../../../lib/nav";
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+const projectId = Astro.params.projectId!;
+let error: string | null = Astro.url.searchParams.get("error");
+let ok: string | null = Astro.url.searchParams.get("ok") ? "Plan updated." : null;
+let email = "", isAdmin = false;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  email = me.user.email; isAdmin = me.user.isAdmin;
+} catch { return Astro.redirect("/login"); }
+
+if (Astro.request.method === "POST") {
+  try {
+    const f = await Astro.request.formData();
+    const key = crypto.randomUUID();
+    const origin = Astro.url.origin;
+    const result = await api<{
+      authorizationUrl?: string;
+      plan?: { name: string };
+    }>(`/api/v1/projects/${projectId}/plan`, {
+      method: "POST",
+      token,
+      body: {
+        planName: String(f.get("planName") || "pro"),
+        callbackUrl: `${origin}/projects/${projectId}/plan/callback`,
+      },
+      headers: { "Idempotency-Key": key },
+    });
+    if (result.authorizationUrl) return Astro.redirect(result.authorizationUrl);
+    return Astro.redirect(`/projects/${projectId}/plans?ok=1`);
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Upgrade failed";
+  }
+}
+
+const data = await api<{
+  current: { name: string; maxServices: number; maxMembers: number; priceCents: number };
+  plans: Array<{ name: string; maxServices: number; maxMembers: number; priceCents: number }>;
+}>(`/api/v1/projects/${projectId}/plans`, { token });
+---
+<AppLayout title="Plan" email={email} isAdmin={isAdmin} sideNav={projectSide(projectId, "plan")}>
+  <h1 class="text-xl font-semibold mb-4">Plan</h1>
+  <Flash error={error} ok={ok} />
+  <div class="sg-card mb-6">
+    <p class="m-0 text-sm">Current: <strong>{data.current?.name}</strong></p>
+    <p class="text-muted text-xs mt-1">
+      {data.current?.maxServices} services · {data.current?.maxMembers} members
+      {data.current?.priceCents ? ` · ${data.current.priceCents} (minor units)` : ""}
+    </p>
+  </div>
+  <div class="grid sm:grid-cols-2 gap-3">
+    {(data.plans ?? []).map((p) => (
+      <div class="sg-card flex flex-col gap-2">
+        <strong class="capitalize">{p.name}</strong>
+        <p class="text-muted text-xs m-0">{p.maxServices} services · {p.maxMembers} members</p>
+        <p class="text-muted text-xs m-0">{p.priceCents ? `${p.priceCents} minor units` : "Free"}</p>
+        {p.name !== data.current?.name && p.name === "pro" && (
+          <form method="post">
+            <input type="hidden" name="planName" value="pro" />
+            <button class="sg-btn text-xs self-start" type="submit">Upgrade</button>
+          </form>
+        )}
+      </div>
+    ))}
+  </div>
+</AppLayout>

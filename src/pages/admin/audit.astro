@@ -1,0 +1,104 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import Flash from "../../components/Flash.astro";
+import { api } from "../../lib/api";
+import { getToken } from "../../lib/auth";
+import { lagos } from "../../lib/format";
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+let email = "";
+let error: string | null = null;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  if (!me.user.isAdmin) return Astro.redirect("/projects");
+  email = me.user.email;
+} catch { return Astro.redirect("/login"); }
+
+const page = "audit";
+let rows: any[] = [];
+let title = page;
+
+if (Astro.request.method === "POST" && page === "users") {
+  try {
+    const f = await Astro.request.formData();
+    await api(`/api/v1/admin/users/${String(f.get("userId"))}/admin`, {
+      method: "POST",
+      token,
+      body: { action: String(f.get("action")) },
+    });
+    return Astro.redirect("/admin/users");
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Failed";
+  }
+}
+
+try {
+  if (page === "failures") {
+    title = "Scheduler failures";
+    const d = await api<{ failures: any[] }>("/api/v1/admin/scheduler-failures?limit=100", { token });
+    rows = d.failures ?? [];
+  } else if (page === "jobs") {
+    title = "Check jobs";
+    const d = await api<{ jobs: any[] }>("/api/v1/admin/jobs?minAttempts=1&limit=100", { token });
+    rows = d.jobs ?? [];
+  } else if (page === "outbox") {
+    title = "Outbox";
+    const d = await api<{ messages: any[] }>("/api/v1/admin/outbox?limit=100", { token });
+    rows = d.messages ?? [];
+  } else if (page === "audit") {
+    title = "Audit log";
+    const d = await api<{ entries: any[] }>("/api/v1/admin/audit?limit=100", { token });
+    rows = d.entries ?? [];
+  } else if (page === "users") {
+    title = "Users";
+    const d = await api<{ users: any[] }>("/api/v1/admin/users?limit=100", { token });
+    rows = d.users ?? [];
+  }
+} catch (e) {
+  error = e instanceof Error ? e.message : "Load failed";
+}
+---
+<AppLayout title={title} email={email} isAdmin={true} active="admin">
+  <p class="text-muted text-xs mb-2"><a href="/admin">← Administration</a></p>
+  <h1 class="text-xl font-semibold mb-4">{title}</h1>
+  <Flash error={error} />
+  <div class="sg-card overflow-x-auto">
+    {page === "failures" && (
+      <table class="sg-table"><thead><tr><th>When</th><th>Message</th></tr></thead>
+      <tbody>{rows.map((r) => <tr><td class="text-muted">{lagos(r.createdAt)}</td><td>{r.message}</td></tr>)}
+      {!rows.length && <tr><td colspan="2" class="text-muted">None</td></tr>}</tbody></table>
+    )}
+    {page === "jobs" && (
+      <table class="sg-table"><thead><tr><th>Service</th><th>Status</th><th>Attempts</th></tr></thead>
+      <tbody>{rows.map((r) => <tr><td>{r.serviceName}</td><td>{r.status}</td><td>{r.attempts}</td></tr>)}
+      {!rows.length && <tr><td colspan="3" class="text-muted">None</td></tr>}</tbody></table>
+    )}
+    {page === "outbox" && (
+      <table class="sg-table"><thead><tr><th>To</th><th>Subject</th><th>Attempts</th><th>Error</th></tr></thead>
+      <tbody>{rows.map((r) => <tr><td>{r.recipientEmail}</td><td>{r.subject}</td><td>{r.attempts}</td><td class="text-muted">{r.lastError || "—"}</td></tr>)}
+      {!rows.length && <tr><td colspan="4" class="text-muted">Clear</td></tr>}</tbody></table>
+    )}
+    {page === "audit" && (
+      <table class="sg-table"><thead><tr><th>When</th><th>Actor</th><th>Action</th></tr></thead>
+      <tbody>{rows.map((r) => <tr><td class="text-muted">{lagos(r.createdAt)}</td><td>{r.actorEmail || "—"}</td><td><code>{r.action}</code></td></tr>)}
+      {!rows.length && <tr><td colspan="3" class="text-muted">None</td></tr>}</tbody></table>
+    )}
+    {page === "users" && (
+      <table class="sg-table"><thead><tr><th>Email</th><th>Admin</th><th></th></tr></thead>
+      <tbody>{rows.map((r) => (
+        <tr>
+          <td>{r.email}{r.name ? ` (${r.name})` : ""}</td>
+          <td>{r.isAdmin ? "yes" : "—"}</td>
+          <td>
+            <form method="post">
+              <input type="hidden" name="userId" value={r.id} />
+              <input type="hidden" name="action" value={r.isAdmin ? "revoke" : "grant"} />
+              <button class="sg-btn-ghost text-xs py-1" type="submit">{r.isAdmin ? "Revoke" : "Make admin"}</button>
+            </form>
+          </td>
+        </tr>
+      ))}
+      {!rows.length && <tr><td colspan="3" class="text-muted">None</td></tr>}</tbody></table>
+    )}
+  </div>
+</AppLayout>

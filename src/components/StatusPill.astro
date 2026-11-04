@@ -1,0 +1,10 @@
+---
+interface Props { status?: string | null }
+const status = Astro.props.status || "Unknown";
+const cls =
+  status === "Operational" ? "text-ok border-ok/40 bg-ok/10" :
+  status === "Degraded" ? "text-warn border-warn/40 bg-warn/10" :
+  status === "Outage" ? "text-bad border-bad/40 bg-bad/10" :
+  "text-muted border-white/10";
+---
+<span class:list={["inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border", cls]}>{status}</span>

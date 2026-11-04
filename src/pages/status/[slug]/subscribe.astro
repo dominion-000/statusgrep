@@ -1,0 +1,33 @@
+---
+import Base from "../../../layouts/Base.astro";
+import "../../../styles/global.css";
+import Flash from "../../../components/Flash.astro";
+import { api } from "../../../lib/api";
+const slug = Astro.params.slug!;
+let error: string | null = null;
+let ok: string | null = null;
+if (Astro.request.method === "POST") {
+  try {
+    const f = await Astro.request.formData();
+    await api(`/api/v1/public/${slug}/subscribe`, {
+      method: "POST",
+      body: { email: String(f.get("email")) },
+    });
+    ok = "Check your email to verify the subscription.";
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Subscribe failed";
+  }
+}
+---
+<Base title="Subscribe">
+  <main class="min-h-screen flex items-center justify-center px-4">
+    <form method="post" class="sg-card w-full max-w-sm flex flex-col gap-3">
+      <h1 class="text-lg font-semibold m-0">Subscribe</h1>
+      <p class="text-muted text-xs m-0">Public updates for <code>{slug}</code></p>
+      <Flash error={error} ok={ok} />
+      <input class="sg-input" type="email" name="email" required placeholder="Email" />
+      <button class="sg-btn" type="submit">Subscribe</button>
+      <a href={`/status/${slug}`} class="text-muted text-xs">← Status page</a>
+    </form>
+  </main>
+</Base>

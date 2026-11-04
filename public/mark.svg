@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
-  <circle cx="36" cy="28" r="11" fill="#3dd68c" opacity="0.5"/>
-  <circle cx="28" cy="52" r="15" fill="#3dd68c"/>
-  <circle cx="62" cy="54" r="22" fill="#4da3ff"/>
+  <circle cx="36" cy="28" r="11" fill="#3dd68c" opacity="0.85"/>
+  <circle cx="28" cy="58" r="14" fill="#4da3ff" opacity="0.9"/>
+  <circle cx="62" cy="48" r="18" fill="#3dd68c"/>
 </svg>

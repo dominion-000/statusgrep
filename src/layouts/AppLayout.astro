@@ -1,0 +1,71 @@
+---
+import Base from "./Base.astro";
+import "../styles/global.css";
+interface Props {
+  title?: string;
+  email?: string | null;
+  isAdmin?: boolean;
+  active?: string;
+  sideTitle?: string;
+  sideNav?: Array<{ href: string; label: string; active?: boolean }>;
+}
+const { title, email, isAdmin, active = "projects", sideTitle, sideNav } = Astro.props;
+---
+<Base title={title}>
+  <div class="min-h-screen grid grid-rows-[3.25rem_1fr_auto]">
+    <header class="sticky top-0 z-20 flex items-center gap-3 px-4 border-b border-white/10 bg-card/80 backdrop-blur-md">
+      <a href="/" class="inline-flex items-center gap-2 font-bold text-fg no-underline">
+        <img src="/mark.svg" alt="" width="22" height="22" />
+        Status<span class="text-brand">Grep</span>
+      </a>
+      <nav class="flex flex-wrap gap-1 flex-1">
+        <a href="/projects" class:list={["px-2.5 py-1 rounded-md text-muted no-underline transition hover:text-fg hover:bg-white/5", active === "projects" && "text-fg bg-white/5"]}>Projects</a>
+        <a href="/account" class:list={["px-2.5 py-1 rounded-md text-muted no-underline transition hover:text-fg hover:bg-white/5", active === "account" && "text-fg bg-white/5"]}>Account</a>
+        {isAdmin && (
+          <a href="/admin" class:list={["px-2.5 py-1 rounded-md text-muted no-underline transition hover:text-fg hover:bg-white/5", active === "admin" && "text-fg bg-white/5"]}>Admin</a>
+        )}
+      </nav>
+      {email && <span class="text-muted text-xs truncate max-w-[10rem] hidden sm:inline">{email}</span>}
+      <a href="/logout" class="sg-btn-ghost text-xs py-1.5">Sign out</a>
+    </header>
+    <div class:list={["grid min-h-0", sideNav?.length && "lg:grid-cols-[14rem_1fr]"]}>
+      {sideNav && sideNav.length > 0 && (
+        <aside class="hidden lg:block border-r border-white/10 bg-card/40 p-3">
+          {sideTitle && <div class="text-[10px] uppercase tracking-wider text-muted px-2 pb-2">{sideTitle}</div>}
+          {sideNav.map((item) => (
+            <a href={item.href} class:list={["block px-2.5 py-2 rounded-md text-muted no-underline mb-0.5 transition hover:text-fg hover:bg-white/5", item.active && "text-fg bg-white/5"]}>
+              {item.label}
+            </a>
+          ))}
+        </aside>
+      )}
+      <main class="p-4 sm:p-6 max-w-5xl w-full animate-fadeUp">
+        <slot />
+      </main>
+    </div>
+    <footer class="border-t border-white/10 px-4 py-3 text-xs text-muted flex flex-wrap items-center justify-between gap-2">
+      <span>© {new Date().getFullYear()} StatusGrep · Status Pulse</span>
+      <span class="inline-flex items-center gap-2" id="api-health">
+        <span class="w-1.5 h-1.5 rounded-full bg-unknown" id="api-health-dot"></span>
+        <span id="api-health-label">API …</span>
+      </span>
+    </footer>
+  </div>
+  <script>
+    async function ping() {
+      const dot = document.getElementById("api-health-dot");
+      const label = document.getElementById("api-health-label");
+      try {
+        const r = await fetch("/api/health");
+        const j = await r.json();
+        if (dot) dot.className = "w-1.5 h-1.5 rounded-full " + (j.ok ? "bg-ok" : "bg-bad");
+        if (label) label.textContent = j.ok ? "API ok" : "API down";
+      } catch {
+        if (dot) dot.className = "w-1.5 h-1.5 rounded-full bg-bad";
+        if (label) label.textContent = "API unreachable";
+      }
+    }
+    ping();
+    setInterval(ping, 30000);
+  </script>
+</Base>

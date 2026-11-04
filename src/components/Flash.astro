@@ -1,0 +1,6 @@
+---
+interface Props { error?: string | null; ok?: string | null }
+const { error, ok } = Astro.props;
+---
+{error && <div class="mb-3 rounded-lg border border-bad/40 bg-bad/10 text-bad px-3 py-2 text-sm">{error}</div>}
+{ok && <div class="mb-3 rounded-lg border border-ok/40 bg-ok/10 text-ok px-3 py-2 text-sm">{ok}</div>}

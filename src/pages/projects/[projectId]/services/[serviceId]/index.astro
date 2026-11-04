@@ -1,0 +1,154 @@
+---
+import AppLayout from "../../../../../layouts/AppLayout.astro";
+import Flash from "../../../../../components/Flash.astro";
+import StatusPill from "../../../../../components/StatusPill.astro";
+import ConfirmModal from "../../../../../components/ConfirmModal.astro";
+import { api } from "../../../../../lib/api";
+import { getToken } from "../../../../../lib/auth";
+import { lagos } from "../../../../../lib/format";
+import { projectSide } from "../../../../../lib/nav";
+
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+const { projectId, serviceId } = Astro.params;
+let error: string | null = Astro.url.searchParams.get("error");
+let email = "";
+let isAdmin = false;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  email = me.user.email; isAdmin = me.user.isAdmin;
+} catch { return Astro.redirect("/login"); }
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const intent = String(f.get("intent"));
+  try {
+    if (intent === "enable") await api(`/api/v1/projects/${projectId}/services/${serviceId}/enable`, { method: "POST", token });
+    if (intent === "disable") await api(`/api/v1/projects/${projectId}/services/${serviceId}/disable`, { method: "POST", token });
+    if (intent === "delete") {
+      await api(`/api/v1/projects/${projectId}/services/${serviceId}`, { method: "DELETE", token });
+      return Astro.redirect(`/projects/${projectId}`);
+    }
+    if (intent === "override") {
+      await api(`/api/v1/projects/${projectId}/services/${serviceId}/status/override`, {
+        method: "POST",
+        token,
+        body: {
+          status: String(f.get("status")),
+          reason: String(f.get("reason")),
+          expiresAt: String(f.get("expiresAt")),
+        },
+      });
+    }
+    if (intent === "clear-override") {
+      await api(`/api/v1/projects/${projectId}/services/${serviceId}/status/override`, { method: "DELETE", token });
+    }
+    return Astro.redirect(`/projects/${projectId}/services/${serviceId}`);
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Failed";
+  }
+}
+
+const { service } = await api<{ service: Record<string, unknown> }>(`/api/v1/projects/${projectId}/services/${serviceId}`, { token });
+let status: Record<string, unknown> = {};
+try { status = await api(`/api/v1/projects/${projectId}/services/${serviceId}/status`, { token }); } catch {}
+let results: Array<Record<string, unknown>> = [];
+try {
+  const rr = await api<{ results?: Array<Record<string, unknown>> }>(`/api/v1/projects/${projectId}/services/${serviceId}/results?limit=20`, { token });
+  results = rr.results ?? [];
+} catch {}
+let history: Array<Record<string, unknown>> = [];
+try {
+  const h = await api<{ history?: Array<Record<string, unknown>> }>(`/api/v1/projects/${projectId}/services/${serviceId}/status/history?limit=20`, { token });
+  history = h.history ?? [];
+} catch {}
+
+const current =
+  (status.status as { current?: string } | undefined)?.current ??
+  (status.current as string | undefined) ??
+  (service.status as string | undefined) ??
+  "Unknown";
+const ov = status.override as { status?: string; reason?: string; expiresAt?: string } | undefined;
+---
+<AppLayout title={`${String(service.name)} · StatusGrep`} email={email} isAdmin={isAdmin} sideTitle="Service" sideNav={projectSide(projectId!, "overview")}>
+  <p class="text-muted text-xs mb-2"><a href={`/projects/${projectId}`}>← Project</a></p>
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <h1 class="text-xl font-semibold m-0">{String(service.name)}</h1>
+    <StatusPill status={current} />
+  </div>
+  <Flash error={error} />
+  <div class="sg-card mb-4 text-sm space-y-1">
+    <div class="text-muted break-all">{String(service.url)}</div>
+    <div class="text-muted">{String(service.method)} · every {String(service.intervalSeconds)}s · timeout {String(service.timeoutSeconds)}s</div>
+    <div class="text-muted">Public: {service.isPublic ? "yes" : "no"} · Enabled: {service.enabled === false ? "no" : "yes"}</div>
+  </div>
+  <div class="flex flex-wrap gap-2 mb-6">
+    <a class="sg-btn-ghost text-xs" href={`/projects/${projectId}/services/${serviceId}/edit`}>Edit</a>
+    <form method="post">{service.enabled === false ? (
+      <><input type="hidden" name="intent" value="enable" /><button class="sg-btn text-xs" type="submit">Enable</button></>
+    ) : (
+      <><input type="hidden" name="intent" value="disable" /><button class="sg-btn-ghost text-xs" type="submit">Disable</button></>
+    )}</form>
+    <form method="post" class="js-del-svc">
+      <input type="hidden" name="intent" value="delete" />
+      <button type="submit" class="sg-btn-danger text-xs">Delete</button>
+    </form>
+  </div>
+  {ov && (
+    <div class="sg-card mb-4 border-warn/30">
+      <p class="text-sm m-0">Override: <StatusPill status={ov.status} /> — {ov.reason}</p>
+      <p class="text-muted text-xs mt-1">Expires {lagos(ov.expiresAt)}</p>
+      <form method="post" class="mt-2"><input type="hidden" name="intent" value="clear-override" /><button class="sg-btn-ghost text-xs" type="submit">Clear override</button></form>
+    </div>
+  )}
+  <form method="post" class="sg-card mb-6 flex flex-col gap-2 max-w-md">
+    <h2 class="text-sm text-muted m-0">Set override</h2>
+    <input type="hidden" name="intent" value="override" />
+    <select class="sg-input" name="status">
+      {["Operational","Degraded","Outage","Unknown"].map((s) => <option value={s}>{s}</option>)}
+    </select>
+    <input class="sg-input" name="reason" required minlength="3" placeholder="Reason" />
+    <input class="sg-input" name="expiresAt" required placeholder="2026-12-01T12:00:00.000Z" />
+    <button class="sg-btn self-start text-xs" type="submit">Apply</button>
+  </form>
+  <section class="sg-card mb-6 overflow-x-auto">
+    <h2 class="text-sm text-muted mb-2">Recent results</h2>
+    <table class="sg-table">
+      <thead><tr><th>When</th><th>OK</th><th>Code</th><th>ms</th></tr></thead>
+      <tbody>
+        {results.map((r) => (
+          <tr>
+            <td class="text-muted">{lagos(String(r.checkedAt || r.createdAt || ""))}</td>
+            <td>{r.passed === true || r.ok === true ? "yes" : "no"}</td>
+            <td>{String(r.statusCode ?? "—")}</td>
+            <td>{String(r.latencyMs ?? "—")}</td>
+          </tr>
+        ))}
+        {!results.length && <tr><td colspan="4" class="text-muted">No results yet</td></tr>}
+      </tbody>
+    </table>
+  </section>
+  <section class="sg-card overflow-x-auto">
+    <h2 class="text-sm text-muted mb-2">Status history</h2>
+    <table class="sg-table">
+      <thead><tr><th>From</th><th>Status</th></tr></thead>
+      <tbody>
+        {history.map((h) => (
+          <tr>
+            <td class="text-muted">{lagos(String(h.startedAt || ""))}</td>
+            <td><StatusPill status={String(h.status || "")} /></td>
+          </tr>
+        ))}
+        {!history.length && <tr><td colspan="2" class="text-muted">None</td></tr>}
+      </tbody>
+    </table>
+  </section>
+  <ConfirmModal id="del-svc" title="Delete service?" message="Soft-delete this service." confirmLabel="Delete" />
+  <script>
+    document.querySelector(".js-del-svc")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      // @ts-ignore
+      if (await window.openConfirm("del-svc")) (e.target as HTMLFormElement).submit();
+    });
+  </script>
+</AppLayout>

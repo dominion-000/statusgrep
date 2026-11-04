@@ -1,0 +1,36 @@
+---
+import AppLayout from "../../../../layouts/AppLayout.astro";
+import { api } from "../../../../lib/api";
+import { getToken } from "../../../../lib/auth";
+import { lagos } from "../../../../lib/format";
+import { projectSide } from "../../../../lib/nav";
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+const projectId = Astro.params.projectId!;
+let email = "", isAdmin = false;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  email = me.user.email; isAdmin = me.user.isAdmin;
+} catch { return Astro.redirect("/login"); }
+const data = await api<{ incidents: Array<{ id: string; title: string; status: string; createdAt: string }> }>(
+  `/api/v1/projects/${projectId}/incidents`, { token });
+const incidents = data.incidents ?? [];
+---
+<AppLayout title="Incidents" email={email} isAdmin={isAdmin} sideNav={projectSide(projectId, "incidents")}>
+  <h1 class="text-xl font-semibold mb-4">Incidents</h1>
+  <div class="sg-card overflow-x-auto">
+    <table class="sg-table">
+      <thead><tr><th>Title</th><th>Status</th><th>Opened</th></tr></thead>
+      <tbody>
+        {incidents.map((i) => (
+          <tr>
+            <td><a href={`/projects/${projectId}/incidents/${i.id}`}>{i.title}</a></td>
+            <td>{i.status}</td>
+            <td class="text-muted">{lagos(i.createdAt)}</td>
+          </tr>
+        ))}
+        {!incidents.length && <tr><td colspan="3" class="text-muted">None</td></tr>}
+      </tbody>
+    </table>
+  </div>
+</AppLayout>

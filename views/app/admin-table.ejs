@@ -1,8 +1,0 @@
-<p class="muted"><a href="/admin">← Administration</a></p>
-<div class="row">
-  <h1 style="margin:0"><%= title %></h1>
-</div>
-<% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
-<div class="card" style="margin-top:1rem;overflow-x:auto">
-  <%- tableHtml %>
-</div>

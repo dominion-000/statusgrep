@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { @apply scroll-smooth; }
+  body {
+    @apply bg-bg text-fg font-mono text-[13px] antialiased min-h-screen;
+    background-image:
+      radial-gradient(1100px 640px at 12% -8%, color-mix(in oklab, oklch(0.8 0.17 156) 9%, transparent), transparent 62%),
+      radial-gradient(950px 560px at 92% -4%, color-mix(in oklab, oklch(0.69 0.14 252) 10%, transparent), transparent 58%);
+    background-attachment: fixed;
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.055;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  a { @apply text-brand2 hover:underline; }
+  ::selection { background: color-mix(in oklab, oklch(0.8 0.17 156) 35%, transparent); }
+  input[type="checkbox"] {
+    @apply appearance-none w-4 h-4 rounded border border-white/20 bg-bg
+      checked:bg-brand checked:border-brand relative cursor-pointer;
+  }
+  input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 4px; top: 1px;
+    width: 5px; height: 9px;
+    border: solid #061018;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+}
+
+@layer components {
+  .sg-card {
+    @apply relative rounded-xl border border-white/10 bg-card/90 p-4 shadow-xl backdrop-blur-sm overflow-hidden;
+  }
+  .sg-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.07;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .sg-btn {
+    @apply relative inline-flex items-center justify-center rounded-lg px-3.5 py-2 text-sm font-bold
+      bg-gradient-to-br from-brand to-brand2 text-bg transition-all duration-200
+      hover:brightness-110 hover:shadow-[0_0_20px_rgba(61,214,140,0.25)] no-underline;
+  }
+  .sg-btn-ghost {
+    @apply relative inline-flex items-center justify-center rounded-lg border border-white/10 px-3.5 py-2 text-sm font-semibold
+      text-fg bg-transparent transition-all duration-200 no-underline
+      hover:border-brand/50 hover:text-brand hover:bg-brand/10 hover:shadow-[0_0_16px_rgba(61,214,140,0.15)];
+  }
+  .sg-btn-danger {
+    @apply relative inline-flex items-center justify-center rounded-lg border border-bad/40 px-3.5 py-2 text-sm font-semibold
+      text-bad bg-transparent transition-all duration-200 no-underline
+      hover:bg-bad/15 hover:border-bad hover:shadow-[0_0_16px_rgba(240,113,120,0.2)];
+  }
+  .sg-input {
+    @apply w-full rounded-lg border border-white/15 bg-bg/80 px-3 py-2 text-fg outline-none
+      transition-colors duration-150 focus:border-brand focus:ring-1 focus:ring-brand/30 placeholder:text-muted/60;
+  }
+  .sg-label { @apply flex flex-col gap-1 text-xs text-muted; }
+  .sg-table { @apply w-full text-left text-[12.5px] border-collapse; }
+  .sg-table th { @apply text-muted font-medium py-2.5 px-2.5 border-b border-white/10; }
+  .sg-table td { @apply py-2.5 px-2.5 border-b border-white/10 align-middle; }
+  .sg-table tr { @apply transition-colors duration-150; }
+  .sg-table tbody tr:hover { @apply bg-white/[0.03]; }
+}

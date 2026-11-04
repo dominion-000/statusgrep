@@ -1,14 +1,7 @@
 {
+  "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "outDir": "dist",
-    "rootDir": "src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "declaration": false
-  },
-  "include": ["src/**/*"]
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
+  }
 }

@@ -1,0 +1,84 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import Flash from "../../../components/Flash.astro";
+import { api } from "../../../lib/api";
+import { getToken } from "../../../lib/auth";
+import { projectSide } from "../../../lib/nav";
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+const projectId = Astro.params.projectId!;
+let error: string | null = Astro.url.searchParams.get("error");
+let email = "", isAdmin = false;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  email = me.user.email; isAdmin = me.user.isAdmin;
+} catch { return Astro.redirect("/login"); }
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const intent = String(f.get("intent"));
+  try {
+    if (intent === "invite") {
+      await api(`/api/v1/projects/${projectId}/members`, {
+        method: "POST",
+        token,
+        body: { email: String(f.get("email")), role: String(f.get("role") || "Viewer") },
+      });
+    }
+    if (intent === "role") {
+      await api(`/api/v1/projects/${projectId}/members/${String(f.get("userId"))}`, {
+        method: "PATCH",
+        token,
+        body: { role: String(f.get("role")) },
+      });
+    }
+    return Astro.redirect(`/projects/${projectId}/members`);
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Failed";
+  }
+}
+
+const data = await api<{
+  members: Array<{ userId: string; email: string; name: string | null; role: string }>;
+}>(`/api/v1/projects/${projectId}/members`, { token });
+const members = data.members ?? [];
+---
+<AppLayout title="Members" email={email} isAdmin={isAdmin} sideNav={projectSide(projectId, "members")}>
+  <h1 class="text-xl font-semibold mb-4">Members</h1>
+  <Flash error={error} />
+  <div class="sg-card mb-6 overflow-x-auto">
+    <table class="sg-table">
+      <thead><tr><th>Email</th><th>Role</th><th></th></tr></thead>
+      <tbody>
+        {members.map((m) => (
+          <tr>
+            <td>{m.email}{m.name ? ` (${m.name})` : ""}</td>
+            <td>{m.role}</td>
+            <td>
+              {m.role !== "Owner" && (
+                <form method="post" class="flex gap-1 items-center">
+                  <input type="hidden" name="intent" value="role" />
+                  <input type="hidden" name="userId" value={m.userId} />
+                  <select class="sg-input py-1 text-xs" name="role">
+                    {["Viewer","Responder","Owner"].map((r) => <option value={r} selected={m.role === r}>{r}</option>)}
+                  </select>
+                  <button class="sg-btn-ghost text-xs py-1" type="submit">Set</button>
+                </form>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <form method="post" class="sg-card max-w-md flex flex-col gap-3">
+    <h2 class="text-sm text-muted m-0">Invite</h2>
+    <input type="hidden" name="intent" value="invite" />
+    <input class="sg-input" type="email" name="email" required placeholder="Email" />
+    <select class="sg-input" name="role">
+      <option value="Viewer">Viewer</option>
+      <option value="Responder">Responder</option>
+    </select>
+    <button class="sg-btn self-start" type="submit">Invite</button>
+  </form>
+</AppLayout>

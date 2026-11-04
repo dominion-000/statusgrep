@@ -1,0 +1,71 @@
+---
+import AppLayout from "../../../../../layouts/AppLayout.astro";
+import Flash from "../../../../../components/Flash.astro";
+import { api } from "../../../../../lib/api";
+import { getToken } from "../../../../../lib/auth";
+import { projectSide } from "../../../../../lib/nav";
+
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+const { projectId, serviceId } = Astro.params;
+let error: string | null = Astro.url.searchParams.get("error");
+let email = "";
+let isAdmin = false;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  email = me.user.email; isAdmin = me.user.isAdmin;
+} catch { return Astro.redirect("/login"); }
+
+const { service } = await api<{ service: Record<string, any> }>(`/api/v1/projects/${projectId}/services/${serviceId}`, { token });
+
+if (Astro.request.method === "POST") {
+  try {
+    const f = await Astro.request.formData();
+    const codes = String(f.get("expectedStatusCodes") || "200").split(/[\s,]+/).map(Number).filter((n) => n >= 100 && n <= 599);
+    await api(`/api/v1/projects/${projectId}/services/${serviceId}`, {
+      method: "PATCH",
+      token,
+      body: {
+        name: String(f.get("name")),
+        url: String(f.get("url")),
+        method: String(f.get("method") || "GET"),
+        intervalSeconds: Number(f.get("intervalSeconds")),
+        timeoutSeconds: Number(f.get("timeoutSeconds")),
+        expectedStatusCodes: codes.length ? codes : [200],
+        isPublic: f.get("isPublic") === "on" || f.get("isPublic") === "true",
+      },
+    });
+    return Astro.redirect(`/projects/${projectId}/services/${serviceId}`);
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Save failed";
+  }
+}
+const codes = Array.isArray(service.expectedStatusCodes) ? service.expectedStatusCodes.join(",") : "200";
+---
+<AppLayout title="Edit service" email={email} isAdmin={isAdmin} sideNav={projectSide(projectId!, "overview")}>
+  <p class="text-muted text-xs mb-2"><a href={`/projects/${projectId}/services/${serviceId}`}>← Service</a></p>
+  <h1 class="text-xl font-semibold mb-4">Edit service</h1>
+  <Flash error={error} />
+  <form method="post" class="sg-card max-w-lg flex flex-col gap-3">
+    <label class="sg-label">Name<input class="sg-input" name="name" value={service.name} required /></label>
+    <label class="sg-label">URL<input class="sg-input" name="url" value={service.url} required /></label>
+    <label class="sg-label">Method
+      <select class="sg-input" name="method">
+        {["GET","HEAD","POST"].map((m) => <option value={m} selected={service.method === m}>{m}</option>)}
+      </select>
+    </label>
+    <label class="sg-label">Interval
+      <select class="sg-input" name="intervalSeconds">
+        {[30,60,120,300,600,900,1800,3600].map((n) => (
+          <option value={n} selected={Number(service.intervalSeconds) === n}>{n}</option>
+        ))}
+      </select>
+    </label>
+    <label class="sg-label">Timeout<input class="sg-input" type="number" name="timeoutSeconds" value={service.timeoutSeconds} /></label>
+    <label class="sg-label">Expected codes<input class="sg-input" name="expectedStatusCodes" value={codes} /></label>
+    <label class="flex items-center gap-2 text-sm text-muted">
+      <input type="checkbox" name="isPublic" value="true" checked={Boolean(service.isPublic)} /> Public
+    </label>
+    <button class="sg-btn self-start" type="submit">Save</button>
+  </form>
+</AppLayout>

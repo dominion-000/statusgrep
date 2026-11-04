@@ -1,0 +1,32 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import { api } from "../../lib/api";
+import { getToken } from "../../lib/auth";
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+let email = "";
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  if (!me.user.isAdmin) return Astro.redirect("/projects");
+  email = me.user.email;
+} catch { return Astro.redirect("/login"); }
+const tiles = [
+  { href: "/admin/failures", title: "Scheduler failures", desc: "Enqueue and scheduler hard errors." },
+  { href: "/admin/jobs", title: "Check jobs", desc: "Jobs with attempts (retries, leases)." },
+  { href: "/admin/outbox", title: "Outbox", desc: "Undelivered mail (pending or failed)." },
+  { href: "/admin/audit", title: "Audit log", desc: "Config, plan, membership events." },
+  { href: "/admin/users", title: "Users", desc: "Accounts and platform admin grants." },
+];
+---
+<AppLayout title="Admin" email={email} isAdmin={true} active="admin">
+  <h1 class="text-xl font-semibold mb-1">Administration</h1>
+  <p class="text-muted text-sm mb-6">Platform-wide Status Pulse ops.</p>
+  <div class="grid sm:grid-cols-2 gap-3">
+    {tiles.map((t) => (
+      <a href={t.href} class="sg-card block no-underline text-fg hover:border-brand/40 transition">
+        <strong>{t.title}</strong>
+        <p class="text-muted text-xs mt-1 mb-0">{t.desc}</p>
+      </a>
+    ))}
+  </div>
+</AppLayout>

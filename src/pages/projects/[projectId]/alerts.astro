@@ -1,0 +1,63 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import Flash from "../../../components/Flash.astro";
+import { api } from "../../../lib/api";
+import { getToken } from "../../../lib/auth";
+import { lagos } from "../../../lib/format";
+import { projectSide } from "../../../lib/nav";
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+const projectId = Astro.params.projectId!;
+let error: string | null = Astro.url.searchParams.get("error");
+let email = "", isAdmin = false;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  email = me.user.email; isAdmin = me.user.isAdmin;
+} catch { return Astro.redirect("/login"); }
+
+if (Astro.request.method === "POST") {
+  try {
+    const f = await Astro.request.formData();
+    await api(`/api/v1/projects/${projectId}/alerts/${String(f.get("alertId"))}/acknowledge`, {
+      method: "POST",
+      token,
+    });
+    return Astro.redirect(`/projects/${projectId}/alerts`);
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Failed";
+  }
+}
+
+const data = await api<{
+  alerts: Array<{ id: string; serviceName?: string; createdAt: string; acknowledgement?: unknown }>;
+}>(`/api/v1/projects/${projectId}/alerts`, { token });
+const alerts = data.alerts ?? [];
+---
+<AppLayout title="Alerts" email={email} isAdmin={isAdmin} sideNav={projectSide(projectId, "alerts")}>
+  <h1 class="text-xl font-semibold mb-4">Alerts</h1>
+  <Flash error={error} />
+  <div class="sg-card overflow-x-auto">
+    <table class="sg-table">
+      <thead><tr><th>Service</th><th>When</th><th></th></tr></thead>
+      <tbody>
+        {alerts.map((a) => (
+          <tr>
+            <td>{a.serviceName || a.id.slice(0, 8)}</td>
+            <td class="text-muted">{lagos(a.createdAt)}</td>
+            <td>
+              {!a.acknowledgement ? (
+                <form method="post">
+                  <input type="hidden" name="alertId" value={a.id} />
+                  <button class="sg-btn text-xs py-1" type="submit">Acknowledge</button>
+                </form>
+              ) : (
+                <span class="text-muted text-xs">Acknowledged</span>
+              )}
+            </td>
+          </tr>
+        ))}
+        {!alerts.length && <tr><td colspan="3" class="text-muted">None</td></tr>}
+      </tbody>
+    </table>
+  </div>
+</AppLayout>

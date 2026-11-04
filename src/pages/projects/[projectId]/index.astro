@@ -1,0 +1,173 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import Flash from "../../../components/Flash.astro";
+import StatusPill from "../../../components/StatusPill.astro";
+import ConfirmModal from "../../../components/ConfirmModal.astro";
+import { api } from "../../../lib/api";
+import { getToken } from "../../../lib/auth";
+import { projectSide } from "../../../lib/nav";
+
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+const projectId = Astro.params.projectId!;
+let error: string | null = Astro.url.searchParams.get("error");
+let email = "";
+let isAdmin = false;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  email = me.user.email;
+  isAdmin = me.user.isAdmin;
+} catch {
+  return Astro.redirect("/login");
+}
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const intent = String(f.get("intent") || "");
+  try {
+    if (intent === "delete-project") {
+      await api(`/api/v1/projects/${projectId}`, { method: "DELETE", token });
+      return Astro.redirect("/projects");
+    }
+    if (intent === "create-service") {
+      const codes = String(f.get("expectedStatusCodes") || "200")
+        .split(/[\s,]+/)
+        .map(Number)
+        .filter((n) => n >= 100 && n <= 599);
+      await api(`/api/v1/projects/${projectId}/services`, {
+        method: "POST",
+        token,
+        body: {
+          name: String(f.get("name")),
+          url: String(f.get("url")),
+          method: String(f.get("method") || "GET"),
+          intervalSeconds: Number(f.get("intervalSeconds") || 60),
+          timeoutSeconds: Number(f.get("timeoutSeconds") || 10),
+          expectedStatusCodes: codes.length ? codes : [200],
+          isPublic: f.get("isPublic") === "on" || f.get("isPublic") === "true",
+        },
+      });
+      return Astro.redirect(`/projects/${projectId}`);
+    }
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Failed";
+  }
+}
+
+const { project } = await api<{ project: { id: string; name: string; slug: string } }>(
+  `/api/v1/projects/${projectId}`,
+  { token },
+);
+const servicesRes = await api<{
+  services: Array<{
+    id: string;
+    name: string;
+    url: string;
+    intervalSeconds: number;
+    enabled?: boolean;
+    status?: string;
+  }>;
+}>(`/api/v1/projects/${projectId}/services`, { token });
+const services = servicesRes.services ?? [];
+---
+<AppLayout title={`${project.name} · StatusGrep`} email={email} isAdmin={isAdmin} sideTitle={project.name} sideNav={projectSide(projectId, "overview")}>
+  <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+    <div>
+      <h1 class="text-xl font-semibold m-0">{project.name}</h1>
+      <p class="text-muted text-xs m-0">{project.slug}</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a class="sg-btn-ghost text-xs" href={`/status/${project.slug}`} target="_blank" rel="noopener">Public status ↗</a>
+      <form method="post" class="js-del-project">
+        <input type="hidden" name="intent" value="delete-project" />
+        <button type="submit" class="sg-btn-danger text-xs">Delete project</button>
+      </form>
+    </div>
+  </div>
+  <Flash error={error} />
+  <section class="sg-card mb-6">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="text-sm text-muted m-0">Services</h2>
+      <span class="text-muted text-xs">{services.length} total</span>
+    </div>
+    {services.length === 0 ? (
+      <p class="text-muted text-sm">No services — add one below.</p>
+    ) : (
+      <table class="sg-table">
+        <thead><tr><th>Name</th><th>Status</th><th>Endpoint</th><th>Check</th><th></th></tr></thead>
+        <tbody>
+          {services.map((s) => (
+            <tr data-service-id={s.id}>
+              <td class="font-medium">{s.name}</td>
+              <td><span data-live-status={s.id}><StatusPill status={s.status} /></span></td>
+              <td class="text-muted max-w-[12rem] truncate">{s.url}</td>
+              <td class="text-muted">{s.intervalSeconds}s · {s.enabled === false ? "off" : "on"}</td>
+              <td>
+                <a class="sg-btn-ghost text-xs py-1" href={`/projects/${projectId}/services/${s.id}`}>Open</a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </section>
+  <form method="post" class="sg-card flex flex-col gap-3">
+    <h2 class="text-sm text-muted m-0">Add service</h2>
+    <input type="hidden" name="intent" value="create-service" />
+    <div class="grid sm:grid-cols-2 gap-3">
+      <label class="sg-label">Name<input class="sg-input" name="name" required /></label>
+      <label class="sg-label">URL<input class="sg-input" name="url" type="url" required placeholder="https://" /></label>
+      <label class="sg-label">Method
+        <select class="sg-input" name="method">
+          <option value="GET">GET</option>
+          <option value="HEAD">HEAD</option>
+          <option value="POST">POST</option>
+        </select>
+      </label>
+      <label class="sg-label">Interval
+        <select class="sg-input" name="intervalSeconds">
+          {[30,60,120,300,600,900,1800,3600].map((n) => (
+            <option value={n} selected={n===60}>{n < 60 ? `${n}s` : n < 3600 ? `${n/60} min` : "1 hour"}</option>
+          ))}
+        </select>
+      </label>
+      <label class="sg-label">Timeout (s)<input class="sg-input" type="number" name="timeoutSeconds" value="10" min="1" /></label>
+      <label class="sg-label">Expected status codes<input class="sg-input" name="expectedStatusCodes" value="200" /></label>
+    </div>
+    <label class="flex items-center gap-2 text-sm text-muted">
+      <input type="checkbox" name="isPublic" value="true" /> Public on status page
+    </label>
+    <button class="sg-btn self-start" type="submit">Create service</button>
+  </form>
+  <ConfirmModal id="del-project" title="Delete project?" message="This cannot be undone." confirmLabel="Delete" />
+  <script define:vars={{ projectId }}>
+    document.querySelectorAll(".js-del-project").forEach((form) => {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        // @ts-ignore
+        if (await window.openConfirm("del-project")) e.target.submit();
+      });
+    });
+
+    // Live status via SSE proxy (cookie auth)
+    try {
+      const es = new EventSource("/api/live/" + projectId);
+      es.addEventListener("status", (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          (data.services || []).forEach((s) => {
+            const cell = document.querySelector("[data-live-status='" + s.id + "']");
+            if (!cell) return;
+            const st = s.status || "Unknown";
+            let cls = "inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border text-muted border-white/10";
+            if (st === "Operational") cls = "inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border text-ok border-ok/40 bg-ok/10";
+            else if (st === "Degraded") cls = "inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border text-warn border-warn/40 bg-warn/10";
+            else if (st === "Outage") cls = "inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border text-bad border-bad/40 bg-bad/10";
+            cell.innerHTML = '<span class="' + cls + '">' + st + "</span>";
+          });
+        } catch (_) {}
+      });
+      es.onerror = () => { /* reconnect handled by browser */ };
+    } catch (_) {}
+  </script>
+</AppLayout>

@@ -1,0 +1,38 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/global.css";
+import Flash from "../components/Flash.astro";
+import { api } from "../lib/api";
+import { setToken } from "../lib/auth";
+let error: string | null = null;
+if (Astro.request.method === "POST") {
+  try {
+    const f = await Astro.request.formData();
+    const data = await api<{ accessToken: string }>("/api/v1/auth/register", {
+      method: "POST",
+      body: {
+        email: String(f.get("email")),
+        password: String(f.get("password")),
+        name: String(f.get("name") || "") || undefined,
+      },
+    });
+    setToken(Astro.cookies, data.accessToken);
+    return Astro.redirect("/projects");
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Registration failed";
+  }
+}
+---
+<Base title="Sign up · StatusGrep">
+  <main class="min-h-screen flex items-center justify-center px-4">
+    <form method="post" class="sg-card w-full max-w-sm flex flex-col gap-3 animate-fadeUp">
+      <h1 class="text-lg font-semibold m-0">Sign up</h1>
+      <Flash error={error} />
+      <label class="sg-label">Name<input class="sg-input" name="name" autocomplete="name" /></label>
+      <label class="sg-label">Email<input class="sg-input" type="email" name="email" required /></label>
+      <label class="sg-label">Password (min 12)<input class="sg-input" type="password" name="password" required minlength="12" /></label>
+      <button class="sg-btn" type="submit">Create account</button>
+      <a href="/login" class="text-muted text-xs">Already have an account?</a>
+    </form>
+  </main>
+</Base>

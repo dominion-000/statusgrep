@@ -1,0 +1,35 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/global.css";
+import Flash from "../components/Flash.astro";
+import { api } from "../lib/api";
+import { setToken } from "../lib/auth";
+let error: string | null = null;
+if (Astro.request.method === "POST") {
+  try {
+    const f = await Astro.request.formData();
+    const data = await api<{ accessToken: string; user?: { isAdmin?: boolean } }>("/api/v1/auth/login", {
+      method: "POST",
+      body: { email: String(f.get("email")), password: String(f.get("password")) },
+    });
+    setToken(Astro.cookies, data.accessToken);
+    return Astro.redirect("/projects");
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Login failed";
+  }
+}
+---
+<Base title="Log in · StatusGrep">
+  <main class="min-h-screen flex items-center justify-center px-4">
+    <form method="post" class="sg-card w-full max-w-sm flex flex-col gap-3 animate-fadeUp">
+      <h1 class="text-lg font-semibold m-0">Log in</h1>
+      <Flash error={error} />
+      <label class="sg-label">Email<input class="sg-input" type="email" name="email" required autocomplete="username" /></label>
+      <label class="sg-label">Password<input class="sg-input" type="password" name="password" required autocomplete="current-password" /></label>
+      <button class="sg-btn" type="submit">Continue</button>
+      <p class="text-muted text-xs m-0">
+        <a href="/forgot-password">Forgot password</a> · <a href="/register">Sign up</a>
+      </p>
+    </form>
+  </main>
+</Base>

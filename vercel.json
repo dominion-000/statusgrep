@@ -1,11 +1,5 @@
 {
-  "version": 2,
-  "installCommand": "pnpm install",
+  "framework": "astro",
   "buildCommand": "pnpm build",
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "{views/**,public/**,dist/**}"
-    }
-  }
+  "installCommand": "pnpm install"
 }

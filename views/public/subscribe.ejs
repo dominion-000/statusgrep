@@ -1,7 +1,0 @@
-<h1>Subscribe</h1>
-<% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
-<% if (typeof message !== "undefined" && message) { %><div class="flash flash-ok"><%= message %></div><% } %>
-<form method="post" action="/status/<%= slug %>/subscribe" class="card stack">
-  <label class="field">Email <input type="email" name="email" required /></label>
-  <button class="btn" type="submit">Subscribe</button>
-</form>

@@ -1,0 +1,95 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import Flash from "../../components/Flash.astro";
+import ConfirmModal from "../../components/ConfirmModal.astro";
+import { api } from "../../lib/api";
+import { getToken } from "../../lib/auth";
+
+const token = getToken(Astro.cookies);
+if (!token) return Astro.redirect("/login");
+
+let error: string | null = null;
+let email = "";
+let isAdmin = false;
+try {
+  const me = await api<{ user: { email: string; isAdmin: boolean } }>("/api/v1/auth/me", { token });
+  email = me.user.email;
+  isAdmin = me.user.isAdmin;
+} catch {
+  return Astro.redirect("/login");
+}
+
+type Project = { id: string; name: string; slug: string };
+let projects: Project[] = [];
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const intent = String(f.get("intent") || "");
+  try {
+    if (intent === "create") {
+      await api("/api/v1/projects", {
+        method: "POST",
+        token,
+        body: {
+          name: String(f.get("name") || ""),
+          slug: String(f.get("slug") || "") || undefined,
+        },
+      });
+      return Astro.redirect("/projects");
+    }
+    if (intent === "delete") {
+      await api(`/api/v1/projects/${String(f.get("id"))}`, { method: "DELETE", token });
+      return Astro.redirect("/projects");
+    }
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Request failed";
+  }
+}
+
+try {
+  const data = await api<{ projects: Project[] }>("/api/v1/projects", { token });
+  projects = data.projects ?? [];
+} catch (e) {
+  error = e instanceof Error ? e.message : "Failed to load";
+}
+---
+<AppLayout title="Projects · StatusGrep" email={email} isAdmin={isAdmin} active="projects">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-semibold m-0">Projects</h1>
+  </div>
+  <Flash error={error} />
+  <div class="space-y-2 mb-8">
+    {projects.map((p) => (
+      <div class="sg-card flex items-center justify-between gap-3 hover:border-brand/30 transition">
+        <div>
+          <a href={`/projects/${p.id}`} class="font-semibold text-fg no-underline hover:text-brand">{p.name}</a>
+          <div class="text-muted text-xs">{p.slug}</div>
+        </div>
+        <form method="post" class="js-confirm-delete">
+          <input type="hidden" name="intent" value="delete" />
+          <input type="hidden" name="id" value={p.id} />
+          <button type="submit" class="sg-btn-danger text-xs py-1.5">Delete</button>
+        </form>
+      </div>
+    ))}
+    {!projects.length && <div class="sg-card text-muted text-center py-8">No projects yet — create one below.</div>}
+  </div>
+  <form method="post" class="sg-card max-w-md flex flex-col gap-3">
+    <h2 class="text-sm text-muted m-0">New project</h2>
+    <input type="hidden" name="intent" value="create" />
+    <label class="sg-label">Name<input class="sg-input" name="name" required /></label>
+    <label class="sg-label">Slug (optional)<input class="sg-input" name="slug" placeholder="auto from name" /></label>
+    <button class="sg-btn self-start" type="submit">Create</button>
+  </form>
+  <ConfirmModal id="del-project" title="Delete project?" message="This removes the project and all its services, incidents, and history." confirmLabel="Delete" />
+  <script>
+    document.querySelectorAll(".js-confirm-delete").forEach((form) => {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        // @ts-ignore
+        const ok = await window.openConfirm("del-project");
+        if (ok) (e.target as HTMLFormElement).submit();
+      });
+    });
+  </script>
+</AppLayout>

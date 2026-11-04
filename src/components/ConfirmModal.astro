@@ -1,0 +1,35 @@
+---
+interface Props {
+  id: string;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+}
+const { id, title, message, confirmLabel = "Confirm" } = Astro.props;
+---
+<dialog id={id} class="rounded-xl border border-white/10 bg-card text-fg p-0 shadow-2xl backdrop:bg-black/60 open:max-w-md open:w-[calc(100%-2rem)]">
+  <form method="dialog" class="p-5 flex flex-col gap-3">
+    <h2 class="text-base font-semibold m-0">{title}</h2>
+    <p class="text-muted text-sm m-0 leading-relaxed">{message}</p>
+    <div class="flex gap-2 justify-end pt-1">
+      <button value="cancel" class="sg-btn-ghost">Cancel</button>
+      <button value="confirm" class="sg-btn-danger">{confirmLabel}</button>
+    </div>
+  </form>
+</dialog>
+<script is:inline define:vars={{ id }}>
+  if (!window.__sgConfirm) {
+    window.__sgConfirm = true;
+    window.openConfirm = function (dialogId) {
+      const d = document.getElementById(dialogId);
+      if (!d || typeof d.showModal !== "function") return Promise.resolve(false);
+      d.returnValue = "";
+      d.showModal();
+      return new Promise(function (resolve) {
+        d.addEventListener("close", function () {
+          resolve(d.returnValue === "confirm");
+        }, { once: true });
+      });
+    };
+  }
+</script>
