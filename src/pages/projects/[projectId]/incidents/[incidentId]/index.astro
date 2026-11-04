@@ -37,7 +37,7 @@ const data = await api<{
   incident: { id: string; title: string; status: string; resolvedAt?: string; updates?: Array<{ status?: string; message: string; createdAt: string }> };
 }>(`/api/v1/projects/${projectId}/incidents/${incidentId}`, { token });
 const incident = data.incident;
-const updates = incident.updates ?? data.incident && (data as any).updates || [];
+const updates = incident.updates ?? (data as any).updates ?? [];
 const order = ["Investigating", "Identified", "Monitoring", "Resolved"];
 const idx = order.indexOf(incident.status);
 const nextStatus = idx >= 0 && idx < order.length - 1 ? order[idx + 1] : null;
