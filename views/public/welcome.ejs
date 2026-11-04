@@ -1,16 +1,21 @@
-<section class="hero">
+<section class="hero grain">
   <div class="hero-mark" aria-hidden="true">
-    <img src="/assets/mark.svg" alt="" width="88" height="88" />
+    <img src="/assets/mark.svg" alt="" width="72" height="72" />
   </div>
-  <h1 class="hero-title">Status<span>Grep</span></h1>
-  <p class="hero-lead">Monitor HTTP endpoints. Track incidents. Publish status.</p>
+  <h1 class="hero-title">Status<span class="text-gradient">Grep</span></h1>
+  <p class="hero-lead">HTTP checks · status · incidents · public pages</p>
   <div class="hero-actions">
     <% if (typeof loggedIn !== "undefined" && loggedIn) { %>
-      <a class="btn" href="/projects">Go to dashboard</a>
+      <a class="btn" href="/projects">Dashboard</a>
       <a class="btn secondary" href="/logout">Sign out</a>
     <% } else { %>
       <a class="btn" href="/login">Log in</a>
       <a class="btn secondary" href="/register">Sign up</a>
     <% } %>
   </div>
+  <ul class="hero-points">
+    <li>Schedule endpoint checks</li>
+    <li>Outage alerts and incidents</li>
+    <li>Public status and plans</li>
+  </ul>
 </section>
