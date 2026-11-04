@@ -1,31 +1,29 @@
 <div class="row">
   <h1>Projects</h1>
 </div>
-<% if (typeof formError !== "undefined" && formError) { %><div class="flash flash-error"><%= formError %></div><% } %>
-<div class="panel-grid cols-2" style="margin-top:0.75rem">
-  <div class="card">
-    <h2>Your projects</h2>
-    <% if (!projects.length) { %>
-      <div class="empty">No projects yet — create one.</div>
-    <% } else { %>
-      <table class="data">
-        <thead><tr><th>Name</th><th>Slug</th><th>Role</th></tr></thead>
-        <tbody>
-          <% projects.forEach(function (p) { %>
-            <tr>
-              <td><a href="/projects/<%= p.id %>"><strong><%= p.name %></strong></a></td>
-              <td class="muted"><%= p.slug %></td>
-              <td class="muted"><%= p.role %></td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    <% } %>
-  </div>
-  <form method="post" action="/projects" class="card stack">
-    <h2>New project</h2>
-    <label class="field">Name <input name="name" required autocomplete="off" /></label>
-    <label class="field">Slug <input name="slug" placeholder="optional" autocomplete="off" /></label>
-    <button class="btn" type="submit">Create</button>
-  </form>
-</div>
+<% if (typeof error !== "undefined" && error) { %><div class="flash flash-error"><%= error %></div><% } %>
+<% if (!projects || !projects.length) { %>
+  <div class="empty">No projects yet — create one below.</div>
+<% } else { %>
+  <table class="data card">
+    <thead><tr><th>Name</th><th>Slug</th><th></th></tr></thead>
+    <tbody>
+      <% projects.forEach(function (p) { %>
+        <tr>
+          <td><a href="/projects/<%= p.id %>"><%= p.name %></a></td>
+          <td class="muted"><%= p.slug %></td>
+          <td><a class="btn secondary" href="/projects/<%= p.id %>">Open</a></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+<form method="post" action="/projects" class="card stack" style="margin-top:1.25rem;max-width:28rem">
+  <h2>New project</h2>
+  <label class="field">Name <input name="name" required autocomplete="off" /></label>
+  <label class="field">Slug
+    <input name="slug" placeholder="auto from name if empty" autocomplete="off" pattern="[a-z0-9]+(-[a-z0-9]+)*" title="lowercase letters, numbers, hyphens" />
+  </label>
+  <p class="muted" style="margin:0;font-size:12px">Slug is used in the public status URL. Leave blank to generate from the name.</p>
+  <button class="btn" type="submit">Create</button>
+</form>

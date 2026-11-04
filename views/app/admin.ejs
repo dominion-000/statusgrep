@@ -1,32 +1,32 @@
 <div class="row">
   <div>
     <h1 style="margin-bottom:0.25rem">Administration</h1>
-    <p class="muted" style="margin:0">Platform-wide ops for Status Pulse (not project Owner tools).</p>
+    <p class="muted" style="margin:0">Platform-wide Status Pulse ops.</p>
   </div>
 </div>
 <div class="panel-grid cols-2" style="margin-top:1.25rem">
   <a class="card admin-tile" href="/admin/failures">
     <strong>Scheduler failures</strong>
-    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">Services the scheduler could not enqueue or that hit hard errors.</p>
+    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">Enqueue and scheduler hard errors.</p>
   </a>
   <a class="card admin-tile" href="/admin/jobs">
     <strong>Check jobs</strong>
-    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">Jobs with attempts (retries, stuck leases). Includes every project.</p>
+    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">Jobs with attempts (retries, leases).</p>
   </a>
   <a class="card admin-tile" href="/admin/outbox">
     <strong>Outbox</strong>
-    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">Undelivered mail only (pending or failed). Successful sends leave this list.</p>
+    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">Undelivered mail (pending or failed).</p>
   </a>
   <a class="card admin-tile" href="/admin/audit">
     <strong>Audit log</strong>
-    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">Configuration, plan, membership, and acknowledgement events.</p>
+    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">Config, plan, membership, acknowledgements.</p>
   </a>
   <a class="card admin-tile" href="/admin/users">
     <strong>Users</strong>
-    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">All accounts. Grant or revoke platform admin.</p>
+    <p class="muted" style="margin:0.35rem 0 0;font-size:12px">Accounts and platform admin grants.</p>
   </a>
 </div>
 <style>
   .admin-tile { color: inherit; text-decoration: none; transition: border-color 0.15s, background 0.15s; }
-  .admin-tile:hover { border-color: #3dd68c55; background: rgba(61,214,140,0.06); text-decoration: none; }
+  .admin-tile:hover { border-color: color-mix(in oklab, #3dd68c 40%, transparent); background: color-mix(in oklab, #3dd68c 6%, transparent); text-decoration: none; }
 </style>

@@ -44,8 +44,33 @@
   <div class="panel-grid cols-2">
     <label class="field">Name <input name="name" required /></label>
     <label class="field">URL <input name="url" type="url" required placeholder="https://" /></label>
-    <label class="field">Interval (s) <input name="intervalSeconds" type="number" value="60" min="15" /></label>
-    <label class="field">Timeout (s) <input name="timeoutSeconds" type="number" value="10" min="1" /></label>
+    <label class="field">Method
+      <select name="method">
+        <option value="GET" selected>GET</option>
+        <option value="HEAD">HEAD</option>
+        <option value="POST">POST</option>
+      </select>
+    </label>
+    <label class="field">Interval
+      <select name="intervalSeconds">
+        <option value="30">30s</option>
+        <option value="60" selected>60s</option>
+        <option value="120">2 min</option>
+        <option value="300">5 min</option>
+        <option value="600">10 min</option>
+        <option value="900">15 min</option>
+        <option value="1800">30 min</option>
+        <option value="3600">1 hour</option>
+      </select>
+    </label>
+    <label class="field">Timeout (s) <input name="timeoutSeconds" type="number" value="10" min="1" max="120" /></label>
+    <label class="field">Expected status codes
+      <input name="expectedStatusCodes" value="200" placeholder="200 or 200,201" />
+    </label>
   </div>
+  <label class="field" style="flex-direction:row;align-items:center;gap:0.5rem">
+    <input type="checkbox" name="isPublic" value="true" />
+    <span>Public on status page</span>
+  </label>
   <button class="btn" type="submit">Create service</button>
 </form>

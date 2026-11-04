@@ -433,11 +433,18 @@ export function buildRoutes(config: UiConfig): Router {
       if (!user) return res.redirect("/login");
       const id = req.params.projectId!;
       const b = body(req);
+      const codes = (b.expectedStatusCodes || "200")
+        .split(/[\s,]+/)
+        .map((x) => Number(x))
+        .filter((n) => Number.isFinite(n) && n >= 100 && n <= 599);
       await api(req).post(`/api/v1/projects/${id}/services`, {
         name: b.name,
         url: b.url,
+        method: b.method || "GET",
         intervalSeconds: Number(b.intervalSeconds || 60),
         timeoutSeconds: Number(b.timeoutSeconds || 10),
+        expectedStatusCodes: codes.length ? codes : [200],
+        isPublic: b.isPublic === "true" || b.isPublic === "on",
       });
       res.redirect(`/projects/${id}`);
     } catch (err) {
